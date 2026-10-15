@@ -19,9 +19,9 @@ function Links({ path }: { path: string | null }) {
             key={l.href}
             href={l.href}
             aria-current={on ? "page" : undefined}
-            className="flex min-h-11 flex-col justify-center whitespace-nowrap rounded-full border border-transparent px-2.5 text-center leading-tight no-underline transition-colors hover:border-gold/50 aria-[current=page]:border-gold/70 aria-[current=page]:bg-shyam/70 sm:px-4"
+            className="flex min-h-11 flex-col justify-center whitespace-nowrap rounded-full border border-transparent px-2.5 text-center max-[359px]:px-1.5 leading-tight no-underline transition-colors hover:border-gold/50 aria-[current=page]:border-gold/70 aria-[current=page]:bg-shyam/70 sm:px-4"
           >
-            <span lang="hi" className="font-display text-[0.98rem] text-gold sm:text-[1.15rem]">
+            <span lang="hi" className="font-display text-[0.98rem] text-gold max-[359px]:text-[0.88rem] sm:text-[1.15rem]">
               {l.hi}
             </span>
             <span className="hidden text-[0.72rem] uppercase tracking-[0.14em] text-sandal sm:block">{l.en}</span>

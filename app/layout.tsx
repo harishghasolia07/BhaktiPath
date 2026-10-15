@@ -48,9 +48,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           <Toran />
           <div className="mx-auto flex h-[62px] w-full max-w-[1520px] items-center px-4 sm:h-[62px] sm:px-6">
             <Link href="/" className="group flex shrink-0 items-center gap-2 no-underline sm:gap-3" aria-label="Shravanam Kirtanam, home">
-              <Feather className="h-8 w-5 shrink-0 sm:h-9 sm:w-6 transition-transform duration-500 ease-out group-hover:-rotate-12" />
+              <Feather className="h-8 w-5 shrink-0 max-[339px]:hidden sm:h-9 sm:w-6 transition-transform duration-500 ease-out group-hover:-rotate-12" />
               <span className="flex items-baseline gap-3">
-                <span lang="hi" className="whitespace-nowrap font-display text-[1.45rem] leading-none text-gold sm:text-[2rem]">
+                <span lang="hi" className="whitespace-nowrap font-display text-[1.45rem] leading-none text-gold max-[359px]:text-[1.2rem] sm:text-[2rem]">
                   श्रवणं कीर्तनं
                 </span>
                 <span className="hidden text-[0.8125rem] font-medium uppercase tracking-[0.16em] text-sandal sm:inline">

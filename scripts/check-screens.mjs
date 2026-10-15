@@ -43,6 +43,8 @@ const require = createRequire(import.meta.url);
 // name, width, height (the browser's page area, not the screen), target?
 const SIZES = {
   phone: [
+    ["phone-320x640 (small Android)", 320, 640, true],
+    ["phone-360x740 (common Android)", 360, 740, true],
     ["phone-375x667 (iPhone SE)", 375, 667, true],
     ["phone-390x664 (iPhone 14, Safari bars)", 390, 664, true],
     ["phone-430x740 (Pro Max)", 430, 740, true],
@@ -86,11 +88,12 @@ async function sitemapRoutes(base) {
 const DEFAULT_ROUTES = [
   "/",
   "/kathas",
-  "/kathas?k=sikar-2026-bhagwat-katha&d=5",
-  "/clip/radhe-radhe-japo-chale-aayenge-bihari",
-  "/clip/krishna-janm-prasang",
-  "/clip/figc8c9zy8-3300",
+  "/kathas?k=dhuri-2026-bhagwat-katha&d=5",
+  "/clip/main-bairagan-hungi",
+  "/clip/aarti-ati-paavan-puran-ki",
+  "/clip/krishna-govind-govind-gopal-nandlal",
   "/admin",
+  "/admin/bulk",
   "/__screen-check-404",
 ];
 

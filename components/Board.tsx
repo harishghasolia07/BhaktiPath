@@ -76,7 +76,7 @@ export function Board({ clips }: { clips: Clip[] }) {
       </div>
 
       <div className="flex flex-col gap-3 px-4 pb-1 pt-4 sm:px-5">
-        <div role="tablist" aria-label="Sections" className="flex gap-1.5 sm:gap-2">
+        <div role="tablist" aria-label="Sections" className="flex flex-wrap gap-1.5 sm:gap-2">
           {FILTERS.map((f) => {
             const on = f === filter;
             const label = f === "all" ? { en: "All" } : f === "fav" ? { en: "My bhajans" } : CATEGORY_LABELS[f];
@@ -88,7 +88,7 @@ export function Board({ clips }: { clips: Clip[] }) {
                 aria-selected={on}
                 aria-controls={panelId}
                 onClick={() => setFilter(f)}
-                className="flex min-h-11 items-center gap-1.5 rounded-full border border-gold/45 px-3 text-[0.95rem] sm:gap-2 sm:px-4 sm:text-[0.98rem] font-semibold text-sandal transition-colors hover:border-gold hover:text-ivory aria-selected:border-gold aria-selected:bg-gold aria-selected:text-shyam"
+                className="flex min-h-11 items-center gap-1.5 rounded-full border border-gold/45 px-3.5 text-[0.95rem] sm:gap-2 sm:px-4 sm:text-[0.98rem] font-semibold text-sandal transition-colors hover:border-gold hover:text-ivory aria-selected:border-gold aria-selected:bg-gold aria-selected:text-shyam"
               >
                 {f === "fav" ? (
                   <>
@@ -98,7 +98,7 @@ export function Board({ clips }: { clips: Clip[] }) {
                 ) : (
                   label.en
                 )}
-                <span className={`tabular text-[0.8rem] font-medium ${on ? "text-shyam/70" : "text-mist/80"}`}>{counts[f]}</span>
+                <span className={`tabular text-[0.8rem] font-medium max-[479px]:hidden ${on ? "text-shyam/70" : "text-mist/80"}`}>{counts[f]}</span>
               </button>
             );
           })}
@@ -158,13 +158,13 @@ export function Board({ clips }: { clips: Clip[] }) {
                       <Link
                         href={`/clip/${c.slug}`}
                         onClick={() => requestAutoplay(c.slug)}
-                        className="group grid grid-cols-[22px_6.6rem_1fr] items-baseline gap-x-2.5 rounded-[3px] py-2.5 pl-1.5 pr-11 no-underline transition-colors hover:bg-shyam-lit sm:grid-cols-[24px_8.4rem_1fr_auto] sm:gap-x-3 sm:pl-2 sm:pr-12"
+                        className="group grid grid-cols-[22px_1fr] items-baseline gap-x-2.5 gap-y-0.5 rounded-[3px] py-2.5 pl-1.5 pr-11 no-underline transition-colors hover:bg-shyam-lit sm:grid-cols-[24px_8.4rem_1fr_auto] sm:gap-x-3 sm:pl-2 sm:pr-12"
                       >
-                        <Diya lit={lit} className="size-[22px] self-start sm:size-6" />
+                        <Diya lit={lit} className="row-span-2 size-[22px] self-start sm:row-span-1 sm:size-6" />
                         <span className="tabular text-[0.84rem] font-semibold text-gold sm:text-[0.98rem]">
                           {formatTime(c.start)} – {formatTime(c.end)}
                         </span>
-                        <span className="min-w-0">
+                        <span className="col-start-2 min-w-0 sm:col-start-auto">
                           <span lang={langOf(c.title)} className="block font-serif text-[1.15rem] leading-snug text-pretty text-ivory group-hover:text-marigold sm:text-[1.2rem]">
                             {c.title}
                           </span>

@@ -611,7 +611,7 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
                           {c.title}
                         </span>
                         <span className="tabular block text-[0.85rem] text-mist">
-                          {formatTime(c.start)} – {formatTime(c.end)} · {sourceLabel(c)}
+                          {formatTime(c.start)} – {formatTime(c.end)} · <span className="whitespace-nowrap">{sourceLabel(c)}</span>
                         </span>
                       </span>
                       <span className="tabular text-[0.85rem] text-mist">{formatLength(c.end - c.start)}</span>

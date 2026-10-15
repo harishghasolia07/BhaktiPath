@@ -224,10 +224,10 @@ export function KathaLibrary({ clips }: { clips: Clip[] }) {
                     : "Nothing matches these filters."}
             </p>
           ) : (
-            <ul className="grid grid-cols-2 gap-3 pb-2 sm:grid-cols-[repeat(auto-fill,minmax(220px,1fr))] sm:gap-4">
-              {shown.map(({ c, d }) => (
+            <ul className="grid grid-cols-1 gap-3 pb-2 sm:grid-cols-[repeat(auto-fill,minmax(220px,1fr))] sm:gap-4">
+              {shown.map(({ c }) => (
                 <li key={c.slug} className="flex">
-                  <ClipCard clip={c} day={d} lit={played.has(c.slug)} />
+                  <ClipCard clip={c} lit={played.has(c.slug)} />
                 </li>
               ))}
             </ul>
