@@ -6,50 +6,54 @@ import { langOf } from "@/lib/display";
 import { requestAutoplay } from "@/lib/local";
 import { formatLength, formatTime, thumbnailUrl } from "@/lib/youtube";
 import { HeartButton } from "./HeartButton";
-import { Diya } from "./ornaments";
 
-/** A small card for one clip: the katha's picture, its timing, the bhajan's name. */
+/**
+ * A clip card laid out like YouTube's: a big rounded 16:9 picture with the timing on it, the
+ * name and details underneath, no box. On phones it is a compact row (picture left, text right).
+ */
 export function ClipCard({ clip, lit }: { clip: Clip; lit: boolean }) {
   return (
-    <div className="group/card relative flex w-full">
-    <Link
-      href={`/clip/${clip.slug}`}
-      onClick={() => requestAutoplay(clip.slug)}
-      className="group flex w-full flex-row overflow-hidden sm:flex-col rounded-[4px] border border-gold/30 bg-shyam no-underline shadow-[0_10px_22px_-12px_rgb(0_0_0/0.7)] transition-colors hover:border-marigold focus-visible:border-marigold"
-    >
-      <span className="relative block aspect-video w-[9.5rem] shrink-0 self-start overflow-hidden bg-[radial-gradient(80%_80%_at_50%_40%,#5c0d1a,#2c040b)] sm:w-full sm:self-auto">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={thumbnailUrl(clip.videoId, "mq")}
-          alt=""
-          loading="lazy"
-          className="h-full w-full object-cover opacity-90 transition-transform duration-500 ease-out group-hover:scale-[1.04]"
-        />
-        <span className="tabular absolute bottom-2 right-2 hidden rounded-full bg-shyam/90 px-2.5 py-0.5 text-[0.8rem] font-semibold text-gold sm:block">
-          {formatTime(clip.start)} – {formatTime(clip.end)}
+    <div className="group/card relative w-full">
+      <Link
+        href={`/clip/${clip.slug}`}
+        onClick={() => requestAutoplay(clip.slug)}
+        className="group block w-full no-underline max-sm:flex max-sm:flex-row max-sm:gap-3"
+      >
+        {/* A 16:9 box that never stretches: YouTube thumbnails are 16:9, so the whole picture shows. */}
+        <span className="relative block aspect-video w-full overflow-hidden rounded-[12px] border border-gold/25 bg-[radial-gradient(80%_80%_at_50%_40%,#5c0d1a,#2c040b)] transition-colors group-hover:border-marigold max-sm:w-[clamp(6.5rem,32vw,9.5rem)] max-sm:shrink-0 max-sm:self-start max-sm:rounded-[10px]">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={thumbnailUrl(clip.videoId, "mq")}
+            alt=""
+            loading="lazy"
+            className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
+          />
+          <span className="tabular absolute bottom-2 right-2 rounded-md bg-black/80 px-1.5 py-0.5 text-[0.8rem] font-semibold text-ivory max-sm:hidden">
+            {formatTime(clip.start)} – {formatTime(clip.end)}
+          </span>
+          {lit && (
+            <span className="absolute inset-x-0 bottom-0 h-1 bg-marigold max-sm:hidden" aria-hidden="true" />
+          )}
         </span>
-      </span>
-      <span className="flex min-w-0 flex-1 items-start gap-2.5 py-2.5 pl-3 pr-11 sm:px-3 sm:pb-3 sm:pr-3">
-        <Diya lit={lit} className="mt-0.5 hidden size-5 shrink-0 sm:block" />
-        <span className="min-w-0">
+        <span className="block min-w-0 flex-1 pr-10 pt-3 max-sm:py-0.5">
           <span lang={langOf(clip.title)} className="block font-serif text-[1.08rem] leading-snug text-pretty text-ivory group-hover:text-marigold">
             {clip.title}
           </span>
-          <span className="tabular mt-1 block text-[0.85rem] font-semibold text-gold sm:hidden">
+          <span className="tabular mt-1 hidden text-[0.85rem] font-semibold text-gold max-sm:block">
             {formatTime(clip.start)} – {formatTime(clip.end)}
           </span>
-          <span className="mt-0.5 block text-[0.78rem] font-semibold uppercase tracking-[0.1em] text-mist">
+          <span className="mt-1 block text-[0.78rem] font-semibold uppercase tracking-[0.1em] text-mist">
             {CATEGORY_LABELS[clip.category].en} · {formatLength(clip.end - clip.start)}
+            {lit ? " · played" : ""}
             {clip.sample ? " · sample" : ""}
           </span>
         </span>
-      </span>
-    </Link>
-    <HeartButton
-      slug={clip.slug}
-      title={clip.title}
-      className="absolute right-1.5 top-1.5 z-10 size-9 bg-velvet/85 text-ivory backdrop-blur-[2px] hover:bg-velvet"
-    />
+      </Link>
+      <HeartButton
+        slug={clip.slug}
+        title={clip.title}
+        className="absolute right-2 top-2 z-10 size-9 bg-velvet/85 text-ivory backdrop-blur-[2px] hover:bg-velvet max-sm:right-1.5 max-sm:top-1.5"
+      />
     </div>
   );
 }

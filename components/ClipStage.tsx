@@ -1,230 +1,89 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { ExternalLink, ListMusic, Moon, Pause, Play, Repeat, RotateCcw, Settings, Share2 } from "lucide-react";
 import type { Clip } from "@/lib/clip-schema";
 import { CATEGORY_LABELS } from "@/lib/clip-schema";
 import { langOf, libraryHref, sourceLabel } from "@/lib/display";
-import { markPlayed, requestAutoplay, takeAutoplay, usePlayed, usePref } from "@/lib/local";
-import { formatLength, formatTime, PLAYER_ERRORS, thumbnailUrl, youtubeAtUrl } from "@/lib/youtube";
-import { loadYouTubeApi, STATE, type YTPlayer } from "@/lib/yt-player";
+import { takeAutoplay, usePlayed, usePref } from "@/lib/local";
+import { formatLength, formatTime, thumbnailUrl, youtubeAtUrl } from "@/lib/youtube";
 import { HeartButton } from "./HeartButton";
+import { usePlayer, type Sleep } from "./PlayerProvider";
 import { Diya } from "./ornaments";
 import { Shrine, shrineMaxWidth } from "./Shrine";
 
 type Props = { queue: Clip[]; initialSlug: string; queueLabel: string };
-/** YouTube's player object exists before its methods do; only use it once they are attached. */
-const ready = (p: YTPlayer | null): p is YTPlayer => p !== null && typeof p.getCurrentTime === "function";
-
-type Sleep = { kind: "end" } | { kind: "time"; until: number; minutes: number } | null;
 type Tab = "next" | "lyrics";
 
 export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
-  const [idx, setIdx] = useState(() => Math.max(0, queue.findIndex((c) => c.slug === initialSlug)));
-  const clip = queue[idx];
-  const [open, setOpen] = useState(false);
-  const [playing, setPlaying] = useState(false);
-  const [now, setNow] = useState(clip.start);
-  const [error, setError] = useState<string | null>(null);
-  const [ended, setEnded] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
-  const [sleep, setSleep] = useState<Sleep>(null);
-  const [sleepMenu, setSleepMenu] = useState(false);
-  const [tab, setTab] = useState<Tab | null>(null);
+  const p = usePlayer();
+  const me = useId();
+  const pageClip = queue.find((c) => c.slug === initialSlug) ?? queue[0];
+  // This page "owns" the shared player when the bhajan playing was started here (or arrived here).
+  const mine = p.current !== null && p.owner === me;
+  const clip = mine ? p.current! : pageClip;
+  const list = mine ? p.queue : queue;
+  const idx = Math.max(0, list.findIndex((c) => c.slug === clip.slug));
+  const open = mine && p.open;
+  const playing = mine && p.playing;
+  const now = mine ? p.now : clip.start;
+  const error = mine ? p.error : null;
+  const ended = mine && p.ended;
+  const sleep = mine ? p.sleep : null;
+
+  const [sleepMenu, setSleepMenu] = useState<HTMLElement | null>(null);
+  const [tabSel, setTabSel] = useState<{ slug: string; tab: Tab } | null>(null);
   const [loop, setLoop] = usePref("loop", false);
   const [autoNext, setAutoNext] = usePref("autonext", true);
   const played = usePlayed();
-
-  const host = useRef<HTMLDivElement>(null);
-  const player = useRef<YTPlayer | null>(null);
-  const current = useRef(clip);
-  const endedFor = useRef<string | null>(null);
-  const captionsOff = useRef(false);
-  const prefs = useRef({ loop, autoNext });
-  const onEndRef = useRef<() => void>(() => {});
-  const sleepRef = useRef<Sleep>(null);
+  const slotRef = useRef<HTMLDivElement>(null);
+  const pRef = useRef(p);
   const actions = useRef({ togglePlay: () => {}, seekBy: (_: number) => {}, nextClip: () => {}, toggleLoop: () => {} });
 
   useEffect(() => {
-    current.current = clip;
-  }, [clip]);
-  useEffect(() => {
-    prefs.current = { loop, autoNext };
-  }, [loop, autoNext]);
-  useEffect(() => {
-    sleepRef.current = sleep;
-  }, [sleep]);
+    pRef.current = p;
+  });
 
-  const next = idx + 1 < queue.length ? queue[idx + 1] : null;
-  // What follows this clip in its section, wrapping round to the start.
-  const upNext = [...queue.slice(idx + 1), ...queue.slice(0, idx)].map((c) => ({ c, i: queue.indexOf(c) }));
+  // Arriving on the page of the bhajan already playing (e.g. from the mini player): take it back.
+  // A tap on this site's board asks for the pat to open straight away.
+  useEffect(() => {
+    const pl = pRef.current;
+    if (pl.current?.slug === initialSlug) pl.adopt(me);
+    else if (takeAutoplay(initialSlug)) pl.play(queue, initialSlug, me);
+  }, [initialSlug, me, queue]);
+
+  // While this page owns the player, it sits over the shrine's opening; leaving makes it a mini player.
+  useEffect(() => {
+    if (!mine || !slotRef.current) return;
+    return pRef.current.registerSlot(slotRef.current, me);
+  }, [mine, me]);
+
+  const next = idx + 1 < list.length ? list[idx + 1] : null;
+  // What follows this clip, wrapping round to the start.
+  const upNext = [...list.slice(idx + 1), ...list.slice(0, idx)];
   const length = clip.end - clip.start;
   const elapsed = Math.min(Math.max(now - clip.start, 0), length);
 
-  const load = useCallback((c: Clip, play: boolean) => {
-    endedFor.current = null;
-    captionsOff.current = false;
-    setNow(c.start);
-    setError(null);
-    setEnded(false);
-    const p = player.current;
-    if (!ready(p)) return; // not loaded yet: it will start from the current clip when it is
-    const o = { videoId: c.videoId, startSeconds: c.start, endSeconds: c.end };
-    if (play) p.loadVideoById(o);
-    else p.cueVideoById(o);
-  }, []);
-
-  const goTo = useCallback(
-    (i: number, play: boolean) => {
-      const c = queue[i];
-      if (!c) return;
-      setIdx(i);
-      setTab(null);
-      current.current = c;
-      window.history.replaceState(null, "", `/clip/${c.slug}`);
-      document.title = `${c.title} · Shravanam Kirtanam`;
-      if (player.current) {
-        load(c, play);
-        if (play) setOpen(true);
-      } else if (play) {
-        setOpen(true);
-      }
-    },
-    [queue, load],
-  );
-
-  // What happens when a clip reaches its end time.
-  useEffect(() => {
-    onEndRef.current = () => {
-      const c = current.current;
-      if (endedFor.current === c.slug) return;
-      endedFor.current = c.slug;
-      if (sleepRef.current?.kind === "end") {
-        // "stop after this bhajan": no repeat, no next
-        setSleep(null);
-        setPlaying(false);
-        setEnded(true);
-        setOpen(false);
-        flash("Sleep timer: stopped after this bhajan");
-        return;
-      }
-      if (prefs.current.loop) {
-        load(c, true);
-        return;
-      }
-      const i = queue.findIndex((q) => q.slug === c.slug);
-      if (prefs.current.autoNext && i + 1 < queue.length) {
-        goTo(i + 1, true);
-        return;
-      }
-      setPlaying(false);
-      setEnded(true);
-      setOpen(false); // the pat closes: darshan is over
-    };
-  }, [queue, goTo, load]);
-
-  // Create YouTube's player the first time the pat opens; destroy it on leave.
-  useEffect(() => {
-    if (!open || player.current || !host.current) return;
-    let cancelled = false;
-    const el = document.createElement("div");
-    host.current.appendChild(el);
-    const c = current.current;
-    loadYouTubeApi()
-      .then((YT) => {
-        if (cancelled) return;
-        player.current = new YT.Player(el, {
-          videoId: c.videoId,
-          width: "100%",
-          height: "100%",
-          playerVars: {
-            start: c.start,
-            end: c.end,
-            autoplay: 1,
-            playsinline: 1,
-            rel: 0,
-            cc_load_policy: 0,
-            origin: window.location.origin,
-          },
-          events: {
-            onReady: (e) => {
-              // a different bhajan was picked while YouTube's player was still loading
-              const now = current.current;
-              if (now.slug !== c.slug) e.target.loadVideoById({ videoId: now.videoId, startSeconds: now.start, endSeconds: now.end });
-            },
-            onStateChange: (e) => {
-              const c2 = current.current;
-              if (e.data === STATE.PLAYING) {
-                setPlaying(true);
-                markPlayed(c2.slug);
-                if (!captionsOff.current) {
-                  captionsOff.current = true;
-                  try {
-                    e.target.unloadModule?.("captions"); // Hindi auto-captions start on in embeds
-                  } catch {}
-                }
-              } else if (e.data === STATE.BUFFERING) {
-                setPlaying(true); // loading more of a clip that is playing
-              } else {
-                setPlaying(false);
-              }
-              if (e.data === STATE.ENDED) onEndRef.current();
-              if (e.data === STATE.PAUSED && e.target.getCurrentTime() >= c2.end - 0.75) onEndRef.current();
-            },
-            onError: (e) => setError(PLAYER_ERRORS[e.data] ?? `YouTube couldn't play this video (error ${e.data}).`),
-          },
-        });
-      })
-      .catch((err: Error) => setError(err.message));
-    return () => {
-      cancelled = true;
-    };
-  }, [open]);
-
-  useEffect(
-    () => () => {
-      player.current?.destroy();
-      player.current = null;
-    },
-    [],
-  );
-
-  // Clip-relative progress.
-  useEffect(() => {
-    if (!open) return;
-    const t = window.setInterval(() => {
-      const p = player.current;
-      if (!p || typeof p.getCurrentTime !== "function") return;
-      const s = p.getCurrentTime();
-      setNow(s);
-      if (s >= current.current.end - 0.25 && p.getPlayerState() !== STATE.PLAYING) onEndRef.current();
-    }, 250);
-    return () => window.clearInterval(t);
-  }, [open]);
-
-  // A tap on this site's board opens the pat straight away.
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- sessionStorage is only readable after hydration
-    if (takeAutoplay(initialSlug)) setOpen(true);
-  }, [initialSlug]);
-
-  // Sleep timer by minutes: pause when it runs out.
-  useEffect(() => {
-    if (sleep?.kind !== "time") return;
-    const t = window.setTimeout(() => {
-      if (ready(player.current)) player.current.pauseVideo();
-      setSleep(null);
-      flash("Sleep timer: paused");
-    }, Math.max(0, sleep.until - Date.now()));
-    return () => window.clearTimeout(t);
-  }, [sleep]);
+  function openDarshan() {
+    if (mine) p.restart();
+    else p.play(queue, initialSlug, me);
+  }
+  function togglePlay() {
+    if (mine) p.toggle();
+    else openDarshan();
+  }
+  function playClip(slug: string) {
+    if (mine) p.goTo(slug);
+    else p.play(queue, slug, me);
+  }
 
   // Close the sleep menu on Escape or a tap elsewhere.
   useEffect(() => {
     if (!sleepMenu) return;
     const close = (e: Event) => {
-      if (e instanceof KeyboardEvent ? e.key === "Escape" : !(e.target as HTMLElement).closest("[data-sleep]")) setSleepMenu(false);
+      if (e instanceof KeyboardEvent ? e.key === "Escape" : !(e.target as HTMLElement).closest("[data-sleep]")) setSleepMenu(null);
     };
     window.addEventListener("keydown", close);
     window.addEventListener("pointerdown", close);
@@ -240,7 +99,7 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
       if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey) return;
       const t = e.target as HTMLElement;
       if (t.closest("input,textarea,select,[contenteditable=true]")) return;
-      const onControl = t.closest("button,a,[role=slider],[role=tab]");
+      const onControl = t.closest("button,a,[role=slider],[role=tab],[role=menuitem]");
       const key = e.key.toLowerCase();
       if (key === " " || key === "k") {
         if (key === " " && onControl) return; // Space presses a focused button
@@ -256,57 +115,24 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  function seekBy(sec: number) {
-    const p = player.current;
-    if (!ready(p) || !open) return;
-    const c = current.current;
-    const target = Math.min(Math.max(p.getCurrentTime() + sec, c.start), c.end - 1);
-    p.seekTo(target, true);
-    setNow(target);
-  }
-
-  function nextClip() {
-    const i = queue.findIndex((q) => q.slug === current.current.slug);
-    if (i + 1 < queue.length) goTo(i + 1, true);
-  }
-
   function startSleep(s: Sleep) {
-    setSleep(s);
-    setSleepMenu(false);
-    flash(s === null ? "Sleep timer off" : s.kind === "end" ? "Will stop after this bhajan" : `Will pause in ${s.minutes} minutes`);
-  }
-
-  function togglePlay() {
-    const p = player.current;
-    if (!open) return openDarshan();
-    if (!ready(p)) return;
-    const st = p.getPlayerState();
-    if (st === STATE.PLAYING || st === STATE.BUFFERING) p.pauseVideo();
-    else if (p.getCurrentTime() >= current.current.end - 0.75) load(current.current, true);
-    else p.playVideo();
-  }
-
-  function openDarshan() {
-    if (ready(player.current)) load(current.current, true);
-    setOpen(true);
+    if (!mine) openDarshan();
+    p.setSleep(s);
+    setSleepMenu(null);
+    p.flash(s === null ? "Sleep timer off" : s.kind === "end" ? "Will stop after this bhajan" : `Will pause in ${s.minutes} minutes`);
   }
 
   function seek(e: React.MouseEvent<HTMLDivElement> | React.KeyboardEvent<HTMLDivElement>) {
-    const p = player.current;
-    if (!ready(p)) return;
-    let target: number;
+    if (!mine) return;
     if ("clientX" in e) {
       const r = e.currentTarget.getBoundingClientRect();
-      target = clip.start + ((e.clientX - r.left) / r.width) * length;
+      p.seekTo(clip.start + ((e.clientX - r.left) / r.width) * length);
     } else {
       const step = e.key === "ArrowRight" ? 5 : e.key === "ArrowLeft" ? -5 : 0;
       if (!step) return;
       e.preventDefault();
-      target = now + step;
+      p.seekTo(now + step);
     }
-    target = Math.min(Math.max(target, clip.start), clip.end - 1);
-    p.seekTo(target, true);
-    setNow(target);
   }
 
   async function share() {
@@ -318,23 +144,23 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
         return;
       }
       await navigator.clipboard.writeText(url);
-      flash("Link copied");
+      p.flash("Link copied");
     } catch (err) {
-      if ((err as Error).name !== "AbortError") flash("Couldn't share. Copy the address bar instead.");
+      if ((err as Error).name !== "AbortError") p.flash("Couldn't share. Copy the address bar instead.");
     }
   }
 
-  function flash(msg: string) {
-    setToast(msg);
-    window.setTimeout(() => setToast(null), 2400);
-  }
-
   useEffect(() => {
-    actions.current = { togglePlay, seekBy, nextClip, toggleLoop: () => setLoop(!prefs.current.loop) };
+    actions.current = {
+      togglePlay,
+      seekBy: (sec) => (mine ? pRef.current.seekBy(sec) : undefined),
+      nextClip: () => (next ? playClip(next.slug) : undefined),
+      toggleLoop: () => setLoop(!loop),
+    };
   });
 
   const cat = CATEGORY_LABELS[clip.category];
-  const tabNow: Tab = tab ?? (clip.lyrics ? "lyrics" : "next");
+  const tabNow: Tab = tabSel?.slug === clip.slug ? tabSel.tab : clip.lyrics ? "lyrics" : "next";
   const showLyrics = Boolean(clip.lyrics) && tabNow === "lyrics";
 
   return (
@@ -350,7 +176,8 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={thumbnailUrl(clip.videoId, "hq")} alt="" className="absolute inset-0 h-full w-full object-cover opacity-80" />
                 )}
-                <div ref={host} className="absolute inset-0 [&>iframe]:h-full [&>iframe]:w-full" />
+                {/* the site-wide player sits over this spot while the bhajan is open */}
+                <div ref={slotRef} className="absolute inset-0" />
               </>
             }
           >
@@ -424,7 +251,7 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
                 <Play className="ml-0.5 size-5 fill-current" aria-hidden="true" />
               )}
             </button>
-            <IconToggle label="Play from the start" onClick={() => (open ? load(clip, true) : openDarshan())}>
+            <IconToggle label="Play from the start" onClick={openDarshan}>
               <RotateCcw className="size-[18px]" aria-hidden="true" />
             </IconToggle>
             <IconToggle label="Repeat this bhajan" pressed={loop} onClick={() => setLoop(!loop)}>
@@ -437,45 +264,15 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
               <IconToggle
                 label={sleep ? "Sleep timer is on" : "Sleep timer"}
                 pressed={sleep !== null}
-                onClick={() => setSleepMenu((v) => !v)}
-                expanded={sleepMenu}
+                onClick={(e) => {
+                  const el = e.currentTarget;
+                  setSleepMenu((m) => (m ? null : el));
+                }}
+                expanded={sleepMenu !== null}
               >
                 <Moon className="size-[18px]" aria-hidden="true" />
               </IconToggle>
-              {sleepMenu && (
-                <ul
-                  role="menu"
-                  aria-label="Sleep timer"
-                  className="absolute bottom-full right-0 z-30 mb-2 w-52 overflow-hidden rounded-[4px] border border-gold/60 bg-shyam py-1 shadow-[0_16px_32px_rgb(0_0_0/0.6)]"
-                >
-                  {(
-                    [
-                      ["After this bhajan", { kind: "end" }],
-                      ["In 15 minutes", { kind: "time", minutes: 15 }],
-                      ["In 30 minutes", { kind: "time", minutes: 30 }],
-                      ["In 60 minutes", { kind: "time", minutes: 60 }],
-                    ] as const
-                  ).map(([label, s]) => (
-                    <li key={label} role="none">
-                      <button
-                        role="menuitem"
-                        type="button"
-                        onClick={() => startSleep(s.kind === "end" ? { kind: "end" } : { kind: "time", minutes: s.minutes, until: Date.now() + s.minutes * 60_000 })}
-                        className="block w-full px-4 py-2.5 text-left text-ivory hover:bg-shyam-lit"
-                      >
-                        {label}
-                      </button>
-                    </li>
-                  ))}
-                  {sleep && (
-                    <li role="none" className="border-t border-gold/25">
-                      <button role="menuitem" type="button" onClick={() => startSleep(null)} className="block w-full px-4 py-2.5 text-left text-marigold hover:bg-shyam-lit">
-                        Turn off
-                      </button>
-                    </li>
-                  )}
-                </ul>
-              )}
+              {sleepMenu && <SleepMenu anchor={sleepMenu} sleep={sleep} onPick={startSleep} />}
             </div>
             <IconToggle label="Share this bhajan" onClick={share}>
               <Share2 className="size-[18px]" aria-hidden="true" />
@@ -491,9 +288,6 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
           Listen with the screen off: open in YouTube
           <ExternalLink className="size-4" aria-hidden="true" />
         </a>
-        <p className="sr-only" aria-live="polite">
-          {open ? `Now playing: ${clip.title}` : ""}
-        </p>
       </div>
 
       {/* ---------- what is playing, and what follows ---------- */}
@@ -558,7 +352,7 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
                     id={`tab-${id}`}
                     aria-selected={tabNow === id}
                     aria-controls="side-panel"
-                    onClick={() => setTab(id)}
+                    onClick={() => setTabSel({ slug: clip.slug, tab: id })}
                     className="flex items-baseline gap-2 whitespace-nowrap rounded-t-[4px] px-3 pb-2 pt-1.5 text-mist aria-selected:bg-shyam-lit aria-selected:text-gold"
                   >
                     <span lang="hi" className="font-display text-[1.15rem] sm:text-[1.25rem]">
@@ -594,14 +388,13 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
                 aria-labelledby={clip.lyrics ? "tab-next" : undefined}
                 className="min-h-0 overflow-y-auto px-2 pb-6 pt-1 [mask-image:linear-gradient(to_bottom,black_calc(100%-2.5rem),transparent)]"
               >
-                {upNext.map(({ c, i }) => (
+                {upNext.map((c) => (
                   <li key={c.slug}>
                     <Link
                       href={`/clip/${c.slug}`}
                       onClick={(e) => {
                         e.preventDefault();
-                        requestAutoplay(c.slug);
-                        goTo(i, true);
+                        playClip(c.slug);
                       }}
                       className="grid grid-cols-[22px_1fr_auto] items-center gap-3 rounded-[3px] px-2 py-2.5 no-underline transition-colors hover:bg-shyam-lit"
                     >
@@ -638,11 +431,6 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
         </p>
       </aside>
 
-      {toast && (
-        <div role="status" className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full border border-gold/60 bg-shyam px-5 py-2.5 text-ivory shadow-[0_10px_30px_rgb(0_0_0/0.5)]">
-          {toast}
-        </div>
-      )}
     </div>
   );
 }
@@ -657,7 +445,7 @@ function IconToggle({
   label: string;
   pressed?: boolean;
   expanded?: boolean;
-  onClick: () => void;
+  onClick: (e: React.MouseEvent<HTMLButtonElement>) => void;
   children: React.ReactNode;
 }) {
   return (
@@ -681,5 +469,47 @@ function PlayGlyph() {
     <svg viewBox="0 0 16 16" className="size-4 fill-marigold" aria-hidden="true">
       <path d="M4 2.5v11l9-5.5z" />
     </svg>
+  );
+}
+
+/** The sleep-timer menu, drawn on the page's top layer so the floating player never hides it. */
+function SleepMenu({ anchor, sleep, onPick }: { anchor: HTMLElement; sleep: Sleep; onPick: (s: Sleep) => void }) {
+  const r = anchor.getBoundingClientRect();
+  return createPortal(
+    <ul
+      role="menu"
+      aria-label="Sleep timer"
+      data-sleep
+      style={{ right: Math.max(8, window.innerWidth - r.right), bottom: window.innerHeight - r.top + 8 }}
+      className="fixed z-[60] w-52 overflow-hidden rounded-[4px] border border-gold/60 bg-shyam py-1 shadow-[0_16px_32px_rgb(0_0_0/0.6)]"
+    >
+      {(
+        [
+          ["After this bhajan", { kind: "end" }],
+          ["In 15 minutes", { kind: "time", minutes: 15 }],
+          ["In 30 minutes", { kind: "time", minutes: 30 }],
+          ["In 60 minutes", { kind: "time", minutes: 60 }],
+        ] as const
+      ).map(([label, s]) => (
+        <li key={label} role="none">
+          <button
+            role="menuitem"
+            type="button"
+            onClick={() => onPick(s.kind === "end" ? { kind: "end" } : { kind: "time", minutes: s.minutes, until: Date.now() + s.minutes * 60_000 })}
+            className="block w-full px-4 py-2.5 text-left text-ivory hover:bg-shyam-lit"
+          >
+            {label}
+          </button>
+        </li>
+      ))}
+      {sleep && (
+        <li role="none" className="border-t border-gold/25">
+          <button role="menuitem" type="button" onClick={() => onPick(null)} className="block w-full px-4 py-2.5 text-left text-marigold hover:bg-shyam-lit">
+            Turn off
+          </button>
+        </li>
+      )}
+    </ul>,
+    document.body,
   );
 }
