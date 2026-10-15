@@ -1,0 +1,553 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-15T12:42:50+00:00",
+  "title": "Design System: Shravanam Kirtanam",
+  "extensions": {
+    "colorMeta": {
+      "velvet": {
+        "role": "neutral",
+        "displayName": "Velvet",
+        "canonical": "#4b0915",
+        "tonalRamp": [
+          "#2e050d",
+          "#650c1c",
+          "#9c132c",
+          "#d3193b",
+          "#e84261",
+          "#ef7a8f",
+          "#f6b1bd",
+          "#fce8ec"
+        ]
+      },
+      "velvet-deep": {
+        "role": "neutral",
+        "displayName": "Velvet Deep",
+        "canonical": "#2c040b",
+        "tonalRamp": [
+          "#2f040c",
+          "#68091a",
+          "#a00f28",
+          "#d91436",
+          "#ed3d5c",
+          "#f3768c",
+          "#f8afbc",
+          "#fde8eb"
+        ]
+      },
+      "velvet-lit": {
+        "role": "neutral",
+        "displayName": "Velvet Lit",
+        "canonical": "#6e1324",
+        "tonalRamp": [
+          "#2b080e",
+          "#601120",
+          "#951a31",
+          "#ca2342",
+          "#e04b67",
+          "#e98093",
+          "#f2b4c0",
+          "#fbe9ed"
+        ]
+      },
+      "gold": {
+        "role": "primary",
+        "displayName": "Zari Gold",
+        "canonical": "#e3b04b",
+        "tonalRamp": [
+          "#2c2007",
+          "#62460f",
+          "#976c18",
+          "#cd9320",
+          "#e3af48",
+          "#ebc67e",
+          "#f3deb3",
+          "#fcf5e9"
+        ]
+      },
+      "brass": {
+        "role": "primary",
+        "displayName": "Temple Brass",
+        "canonical": "#b8862b",
+        "tonalRamp": [
+          "#291e0a",
+          "#5c4315",
+          "#8e6721",
+          "#c08c2d",
+          "#d7a854",
+          "#e3c286",
+          "#eedbb8",
+          "#faf5ea"
+        ]
+      },
+      "brass-dark": {
+        "role": "primary",
+        "displayName": "Dark Brass",
+        "canonical": "#7a5414",
+        "tonalRamp": [
+          "#2c1e07",
+          "#614310",
+          "#966719",
+          "#cb8c21",
+          "#e1a949",
+          "#eac27f",
+          "#f3dbb4",
+          "#fbf5e9"
+        ]
+      },
+      "marigold": {
+        "role": "secondary",
+        "displayName": "Marigold",
+        "canonical": "#f29d16",
+        "tonalRamp": [
+          "#301f03",
+          "#6b4406",
+          "#a66909",
+          "#e08e0d",
+          "#f4ab37",
+          "#f7c472",
+          "#fadcac",
+          "#fef5e7"
+        ]
+      },
+      "marigold-deep": {
+        "role": "secondary",
+        "displayName": "Deep Marigold",
+        "canonical": "#d9700a",
+        "tonalRamp": [
+          "#311902",
+          "#6c3805",
+          "#a75608",
+          "#e2750a",
+          "#f69435",
+          "#f8b370",
+          "#fbd3ab",
+          "#fef2e7"
+        ]
+      },
+      "leaf": {
+        "role": "tertiary",
+        "displayName": "Mango Leaf",
+        "canonical": "#3f7a35",
+        "tonalRamp": [
+          "#12240f",
+          "#294f22",
+          "#3f7a35",
+          "#55a548",
+          "#78bf6c",
+          "#9fd297",
+          "#c7e5c2",
+          "#eff7ed"
+        ]
+      },
+      "shyam": {
+        "role": "tertiary",
+        "displayName": "Shyam Blue",
+        "canonical": "#17204a",
+        "tonalRamp": [
+          "#0c1127",
+          "#1b2556",
+          "#293a85",
+          "#384eb5",
+          "#5e71cd",
+          "#8d9bdc",
+          "#bcc4ea",
+          "#eceef9"
+        ]
+      },
+      "shyam-lit": {
+        "role": "tertiary",
+        "displayName": "Shyam Lit",
+        "canonical": "#222d63",
+        "tonalRamp": [
+          "#0d1126",
+          "#1d2654",
+          "#2d3b82",
+          "#3d50b0",
+          "#6273c9",
+          "#909cd9",
+          "#bec5e9",
+          "#eceef8"
+        ]
+      },
+      "ivory": {
+        "role": "neutral",
+        "displayName": "Ivory",
+        "canonical": "#f8e9cb",
+        "tonalRamp": [
+          "#2d2006",
+          "#64470d",
+          "#9a6e15",
+          "#d1941c",
+          "#e6b045",
+          "#edc77b",
+          "#f5deb2",
+          "#fcf5e9"
+        ]
+      },
+      "sandal": {
+        "role": "neutral",
+        "displayName": "Sandalwood",
+        "canonical": "#e8cf9e",
+        "tonalRamp": [
+          "#291f0a",
+          "#5b4416",
+          "#8d6922",
+          "#bf8e2d",
+          "#d7aa54",
+          "#e2c386",
+          "#eedcb8",
+          "#faf5ea"
+        ]
+      },
+      "mist": {
+        "role": "neutral",
+        "displayName": "Mist",
+        "canonical": "#c3c8ea",
+        "tonalRamp": [
+          "#0d1026",
+          "#1d2454",
+          "#2d3882",
+          "#3d4caf",
+          "#6270c8",
+          "#909ad8",
+          "#bec4e8",
+          "#eceef8"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display (Yatra One)",
+        "purpose": "Devanagari headings only: brand, दर्शन समय, आगे के दर्शन; always glossed in English beside."
+      },
+      "headline": {
+        "displayName": "Headline (Tiro)",
+        "purpose": "Clip title on the clip page and under the home shrine; admin page titles."
+      },
+      "title": {
+        "displayName": "Title (Tiro)",
+        "purpose": "Bhajan names in list rows."
+      },
+      "body": {
+        "displayName": "Body (Mukta)",
+        "purpose": "Metadata, credits, tips, UI text."
+      },
+      "timing": {
+        "displayName": "Timing (Mukta tabular)",
+        "purpose": "Start to end times and durations, in a fixed-width column."
+      },
+      "label": {
+        "displayName": "Label (Mukta uppercase)",
+        "purpose": "Video-group headings, category tags, brand transliteration. Never above a heading as a kicker."
+      },
+      "lyrics": {
+        "displayName": "Lyrics (Tiro)",
+        "purpose": "भजन के बोल panel: 1.2rem, 1.9 line-height, whitespace preserved."
+      }
+    },
+    "shadows": [
+      {
+        "name": "shrine-cast",
+        "value": "drop-shadow(0 22px 30px rgb(0 0 0 / 0.55))",
+        "purpose": "The brass mandir frame on velvet."
+      },
+      {
+        "name": "board-cast",
+        "value": "0 24px 48px -14px rgb(0 0 0 / 0.65)",
+        "purpose": "The framed timings board."
+      },
+      {
+        "name": "panel-cast",
+        "value": "0 18px 36px -10px rgb(0 0 0 / 0.55)",
+        "purpose": "The up-next panel."
+      },
+      {
+        "name": "floating-pill",
+        "value": "0 8px 20px rgb(0 0 0 / 0.45)",
+        "purpose": "Open the darshan call over the thumbnail."
+      },
+      {
+        "name": "toast",
+        "value": "0 10px 30px rgb(0 0 0 / 0.5)",
+        "purpose": "Status toast."
+      },
+      {
+        "name": "toran-cast",
+        "value": "drop-shadow(0 3px 3px rgb(0 0 0 / 0.45))",
+        "purpose": "Garland strip over the page."
+      },
+      {
+        "name": "menu-cast",
+        "value": "0 16px 32px rgb(0 0 0 / 0.6)",
+        "purpose": "Sleep-timer popover."
+      },
+      {
+        "name": "poster-card-cast",
+        "value": "0 10px 22px -12px rgb(0 0 0 / 0.7)",
+        "purpose": "Katha library clip cards."
+      },
+      {
+        "name": "play-contact",
+        "value": "0 6px 14px -4px rgb(0 0 0 / 0.6)",
+        "purpose": "Round Play/Pause button."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out-expo",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "The pat and drape reveal."
+      },
+      {
+        "name": "pat-open",
+        "value": "transform 1.15s var(--ease-out-expo)",
+        "purpose": "Pat halves slide 102% aside; hover peek 7%."
+      },
+      {
+        "name": "drape-in",
+        "value": "opacity 0.6s ease-out, transform 0.9s var(--ease-out-expo), delay 0.35s",
+        "purpose": "Gathered pat appears over each pillar after the halves part."
+      },
+      {
+        "name": "diya-flicker",
+        "value": "flicker 2.6s ease-in-out infinite",
+        "purpose": "Flame on lit diyas only."
+      },
+      {
+        "name": "state-color",
+        "value": "0.2s",
+        "purpose": "Colour and border transitions on buttons, tabs, rows."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "transition-duration 0.01ms; animation none",
+        "purpose": "Pat, drape and flame become instant or still under prefers-reduced-motion."
+      },
+      {
+        "name": "poster-zoom",
+        "value": "transform 500ms ease-out, scale 1.04",
+        "purpose": "Clip-card poster on hover."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "nav-phone",
+        "value": "max-width 47.99rem (nav-h 100px)"
+      },
+      {
+        "name": "md",
+        "value": "768px"
+      },
+      {
+        "name": "lg",
+        "value": "1024px"
+      },
+      {
+        "name": "xl",
+        "value": "1280px"
+      },
+      {
+        "name": "short",
+        "value": "min-width 64rem and max-height 52rem"
+      },
+      {
+        "name": "must-fit-floor",
+        "value": "730px viewport height"
+      },
+      {
+        "name": "one-screen",
+        "value": "1024px and up: body h-svh, #content size container, --fit-h = 100cqh - 2.75rem"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Gold pill for the main admin action (save, sign in, add a clip).",
+      "html": "<button class=\"ds-btn-primary\">Save clip</button>",
+      "css": ".ds-btn-primary{font-family: var(--font-sans, Mukta, system-ui, sans-serif);height:48px;padding:0 28px;border:0;border-radius:9999px;background:var(--color-gold,#e3b04b);color:var(--color-shyam,#17204a);font-weight:600;font-size:1.05rem;cursor:pointer;transition:background-color .2s}.ds-btn-primary:hover{background:var(--color-marigold,#f29d16)}.ds-btn-primary:focus-visible{outline:2px solid var(--color-marigold,#f29d16);outline-offset:3px}.ds-btn-primary:disabled{opacity:.6;cursor:not-allowed}"
+    },
+    {
+      "name": "Mark Button",
+      "kind": "button",
+      "refersTo": "button-mark",
+      "description": "Marigold pill for marking start and end in the admin editor.",
+      "html": "<button class=\"ds-btn-mark\"><svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z\"/><path d=\"M4 22v-7\"/></svg>Mark start here</button>",
+      "css": ".ds-btn-mark{font-family: var(--font-sans, Mukta, system-ui, sans-serif);display:inline-flex;align-items:center;justify-content:center;gap:.5rem;min-height:2.875rem;padding:0 1rem;border:0;border-radius:9999px;background:var(--color-marigold,#f29d16);color:var(--color-velvet-deep,#2c040b);font-weight:600;cursor:pointer;transition:background-color .2s}.ds-btn-mark:hover{background:#ffb32e}.ds-btn-mark:focus-visible{outline:2px solid var(--color-marigold,#f29d16);outline-offset:3px}.ds-btn-mark:disabled{opacity:.45;cursor:not-allowed}"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Outlined pill for secondary actions.",
+      "html": "<button class=\"ds-btn-ghost\">Preview the clip</button>",
+      "css": ".ds-btn-ghost{font-family: var(--font-sans, Mukta, system-ui, sans-serif);display:inline-flex;align-items:center;justify-content:center;gap:.5rem;min-height:2.875rem;padding:0 1rem;border:1px solid rgb(227 176 75 / .4);border-radius:9999px;background:transparent;color:var(--color-sandal,#e8cf9e);font-weight:600;cursor:pointer;transition:border-color .2s,color .2s}.ds-btn-ghost:hover{border-color:var(--color-gold,#e3b04b);color:var(--color-ivory,#f8e9cb)}.ds-btn-ghost:focus-visible{outline:2px solid var(--color-marigold,#f29d16);outline-offset:3px}"
+    },
+    {
+      "name": "Section Tabs",
+      "kind": "chip",
+      "refersTo": "section-tab",
+      "description": "Pill tabs filtering the board by section, each with a tabular count.",
+      "html": "<div class=\"ds-tabs\" role=\"tablist\"><button class=\"ds-tab\" role=\"tab\" aria-selected=\"true\">All <span class=\"ds-count\">24</span></button><button class=\"ds-tab\" role=\"tab\" aria-selected=\"false\">Bhajan <span class=\"ds-count\">12</span></button><button class=\"ds-tab\" role=\"tab\" aria-selected=\"false\">Kirtan <span class=\"ds-count\">7</span></button></div>",
+      "css": ".ds-tabs{display:flex;gap:8px;padding:12px;background:var(--color-shyam,#17204a)}.ds-tab{font-family: var(--font-sans, Mukta, system-ui, sans-serif);display:flex;align-items:center;gap:8px;min-height:44px;padding:0 16px;border:1px solid rgb(227 176 75 / .45);border-radius:9999px;background:transparent;color:var(--color-sandal,#e8cf9e);font-weight:600;font-size:.98rem;cursor:pointer;transition:color .2s,border-color .2s,background-color .2s}.ds-tab:hover{border-color:var(--color-gold,#e3b04b);color:var(--color-ivory,#f8e9cb)}.ds-tab[aria-selected=true]{border-color:var(--color-gold,#e3b04b);background:var(--color-gold,#e3b04b);color:var(--color-shyam,#17204a)}.ds-count{font-variant-numeric:tabular-nums;font-size:.8rem;font-weight:500;color:rgb(195 200 234 / .8)}.ds-tab[aria-selected=true] .ds-count{color:rgb(23 32 74 / .7)}.ds-tab:focus-visible{outline:2px solid var(--color-marigold,#f29d16);outline-offset:3px}"
+    },
+    {
+      "name": "Search Field",
+      "kind": "input",
+      "refersTo": "input-search",
+      "description": "Pill search on the board.",
+      "html": "<label class=\"ds-search\"><svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><circle cx=\"11\" cy=\"11\" r=\"8\"/><path d=\"m21 21-4.3-4.3\"/></svg><input type=\"search\" placeholder=\"Search by bhajan name\"></label>",
+      "css": ".ds-search{position:relative;display:block;padding:12px;background:var(--color-shyam,#17204a)}.ds-search svg{position:absolute;left:26px;top:50%;transform:translateY(-50%);color:var(--color-mist,#c3c8ea)}.ds-search input{font-family: var(--font-sans, Mukta, system-ui, sans-serif);width:100%;height:44px;padding:0 40px;border:1px solid rgb(227 176 75 / .3);border-radius:9999px;background:var(--color-shyam-lit,#222d63);color:var(--color-ivory,#f8e9cb);font-size:1rem;caret-color:var(--color-marigold,#f29d16)}.ds-search input::placeholder{color:rgb(195 200 234 / .8)}.ds-search input:focus{outline:none;border-color:var(--color-gold,#e3b04b)}"
+    },
+    {
+      "name": "Admin Field",
+      "kind": "input",
+      "refersTo": "input-field",
+      "description": "Labelled text field in the admin editor.",
+      "html": "<label class=\"ds-field\"><span>Bhajan name</span><input placeholder=\"Radhe Radhe\"></label>",
+      "css": ".ds-field{font-family: var(--font-sans, Mukta, system-ui, sans-serif);display:flex;flex-direction:column;gap:6px;padding:12px;background:var(--color-velvet,#4b0915)}.ds-field span{font-weight:600;color:var(--color-sandal,#e8cf9e)}.ds-field input{height:48px;padding:0 14px;border:1px solid rgb(227 176 75 / .35);border-radius:6px;background:var(--color-shyam,#17204a);color:var(--color-ivory,#f8e9cb);font-size:1rem;caret-color:var(--color-marigold,#f29d16)}.ds-field input::placeholder{color:rgb(195 200 234 / .7)}.ds-field input:focus{outline:none;border-color:var(--color-gold,#e3b04b)}.ds-field input[aria-invalid=true]{border-color:var(--color-marigold,#f29d16)}"
+    },
+    {
+      "name": "Icon Toggle",
+      "kind": "button",
+      "refersTo": "icon-toggle",
+      "description": "Round clip control; pressed state is outlined in marigold with a 15% tint.",
+      "html": "<button class=\"ds-toggle\" aria-pressed=\"true\" aria-label=\"Repeat this bhajan\"><svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"m17 2 4 4-4 4\"/><path d=\"M3 11v-1a4 4 0 0 1 4-4h14\"/><path d=\"m7 22-4-4 4-4\"/><path d=\"M21 13v1a4 4 0 0 1-4 4H3\"/></svg></button><button class=\"ds-toggle\" aria-pressed=\"false\" aria-label=\"Share\"><svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><circle cx=\"18\" cy=\"5\" r=\"3\"/><circle cx=\"6\" cy=\"12\" r=\"3\"/><circle cx=\"18\" cy=\"19\" r=\"3\"/><path d=\"m8.6 13.5 6.8 4M15.4 6.5l-6.8 4\"/></svg></button>",
+      "css": ".ds-toggle{display:inline-grid;place-items:center;width:44px;height:44px;margin-right:6px;border:1px solid rgb(227 176 75 / .35);border-radius:9999px;background:transparent;color:var(--color-sandal,#e8cf9e);cursor:pointer;transition:color .2s,border-color .2s,background-color .2s}.ds-toggle:hover{border-color:var(--color-gold,#e3b04b);color:var(--color-ivory,#f8e9cb)}.ds-toggle[aria-pressed=true]{border-color:var(--color-marigold,#f29d16);background:rgb(242 157 22 / .15);color:var(--color-marigold,#f29d16)}.ds-toggle:focus-visible{outline:2px solid var(--color-marigold,#f29d16);outline-offset:3px}"
+    },
+    {
+      "name": "Darshan Call",
+      "kind": "button",
+      "refersTo": "darshan-call",
+      "description": "Floating pill over the closed pat that opens the darshan.",
+      "html": "<button class=\"ds-darshan\"><svg viewBox=\"0 0 16 16\" width=\"16\" height=\"16\"><path d=\"M4 2.5v11l9-5.5z\" fill=\"#f29d16\"/></svg>Open the darshan</button>",
+      "css": ".ds-darshan{font-family: var(--font-sans, Mukta, system-ui, sans-serif);display:inline-flex;align-items:center;gap:10px;padding:10px 20px;border:1px solid rgb(227 176 75 / .8);border-radius:9999px;background:rgb(23 32 74 / .9);color:var(--color-ivory,#f8e9cb);font-weight:600;font-size:1.05rem;box-shadow:0 8px 20px rgb(0 0 0 / .45);cursor:pointer;transition:transform .3s ease-out}.ds-darshan:hover{transform:scale(1.04)}.ds-darshan:focus-visible{outline:2px solid var(--color-marigold,#f29d16);outline-offset:3px}"
+    },
+    {
+      "name": "Timings Board Row",
+      "kind": "card",
+      "refersTo": "timings-board",
+      "description": "Brass-framed Shyam board with a label group heading and a diya, timing, title row.",
+      "html": "<section class=\"ds-board\"><div class=\"ds-board-in\"><h2 class=\"ds-board-h\"><span lang=\"hi\" class=\"ds-dev\">दर्शन समय</span><span class=\"ds-gloss\">Darshan timings</span></h2><h3 class=\"ds-group\">Day 3 · Dhuri<span></span></h3><a class=\"ds-row\" href=\"#\"><svg viewBox=\"0 0 28 28\" width=\"24\" height=\"24\"><path d=\"M14 3 C17 7 17.5 10 14 13 C10.5 10 11 7 14 3Z\" fill=\"#ffc94a\"/><path d=\"M3 15 Q14 14 25 15 Q22 23 14 23 Q6 23 3 15Z\" fill=\"#c8752a\"/></svg><span class=\"ds-time\">1:02:10 – 1:09:45</span><span class=\"ds-title\">Radhe Radhe Japo Chale Aayenge Bihari</span><span class=\"ds-len\">7:35</span></a></div></section>",
+      "css": ".ds-board{padding:7px;border-radius:5px;background:linear-gradient(160deg,#f2cf72,#b8862b 45%,#6e4a10);box-shadow:0 24px 48px -14px rgb(0 0 0 / .65)}.ds-board-in{border-radius:2px;background:var(--color-shyam,#17204a);padding:0 12px 12px;font-family: var(--font-sans, Mukta, system-ui, sans-serif);}.ds-board-h{display:flex;align-items:baseline;gap:12px;margin:0;padding:16px 4px 12px;border-bottom:2px solid rgb(227 176 75 / .4);line-height:1}.ds-dev{font-family:var(--font-display,'Yatra One',serif);font-size:1.9rem;font-weight:400;color:var(--color-gold,#e3b04b)}.ds-gloss{font-size:.95rem;font-weight:400;color:var(--color-sandal,#e8cf9e)}.ds-group{display:flex;align-items:center;gap:12px;margin:12px 0 0;padding:0 8px 4px;font-size:.82rem;font-weight:600;text-transform:uppercase;letter-spacing:.16em;color:rgb(227 176 75 / .9)}.ds-group span{flex:1;height:1px;background:rgb(227 176 75 / .25)}.ds-row{display:grid;grid-template-columns:24px 8.4rem 1fr auto;align-items:baseline;gap:12px;padding:10px 8px;border-radius:3px;text-decoration:none;transition:background-color .2s}.ds-row:hover{background:var(--color-shyam-lit,#222d63)}.ds-row svg{align-self:start}.ds-time{font-variant-numeric:tabular-nums;font-weight:600;font-size:.98rem;color:var(--color-gold,#e3b04b)}.ds-title{font-family:var(--font-serif,'Tiro Devanagari Hindi',serif);font-size:1.2rem;line-height:1.375;color:var(--color-ivory,#f8e9cb)}.ds-row:hover .ds-title{color:var(--color-marigold,#f29d16)}.ds-len{font-variant-numeric:tabular-nums;font-size:.9rem;color:var(--color-mist,#c3c8ea)}.ds-row:focus-visible{outline:2px solid var(--color-marigold,#f29d16);outline-offset:3px}"
+    },
+    {
+      "name": "Play Button",
+      "kind": "button",
+      "refersTo": "button-play",
+      "description": "The single filled Marigold action on the clip page.",
+      "html": "<button class=\"ds-play\" aria-label=\"Play\"><svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" fill=\"currentColor\"><path d=\"M6 4v16l14-8z\"/></svg></button>",
+      "css": ".ds-play{display:grid;place-items:center;width:48px;height:48px;border:0;border-radius:9999px;background:var(--color-marigold,#f29d16);color:var(--color-velvet-deep,#2c040b);box-shadow:0 6px 14px -4px rgb(0 0 0 / .6);cursor:pointer;transition:background-color .2s}.ds-play:hover{background:#ffb32e}.ds-play:focus-visible{outline:2px solid var(--color-marigold,#f29d16);outline-offset:3px}"
+    },
+    {
+      "name": "Filter Chip",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Day and section chips in the katha library; pressed fills gold.",
+      "html": "<div class=\"ds-chips\"><button class=\"ds-chip\" aria-pressed=\"true\">All days</button><button class=\"ds-chip\" aria-pressed=\"false\">Day 3</button></div>",
+      "css": ".ds-chips{display:flex;gap:6px;padding:12px;background:var(--color-shyam,#17204a)}.ds-chip{font-family: var(--font-sans, Mukta, system-ui, sans-serif);display:flex;align-items:center;min-height:40px;padding:0 14px;border:1px solid rgb(227 176 75 / .4);border-radius:9999px;background:transparent;color:var(--color-sandal,#e8cf9e);font-size:.92rem;font-weight:600;cursor:pointer;transition:color .2s,border-color .2s,background-color .2s}.ds-chip:hover{border-color:var(--color-gold,#e3b04b);color:var(--color-ivory,#f8e9cb)}.ds-chip[aria-pressed=true]{border-color:var(--color-gold,#e3b04b);background:var(--color-gold,#e3b04b);color:var(--color-shyam,#17204a)}.ds-chip:focus-visible{outline:2px solid var(--color-marigold,#f29d16);outline-offset:3px}"
+    },
+    {
+      "name": "Header Link",
+      "kind": "nav",
+      "refersTo": "nav-link-current",
+      "description": "Devanagari pill link in the header with an English word beneath; current page is lit.",
+      "html": "<nav class=\"ds-nav\"><a class=\"ds-navlink\" href=\"#\"><span lang=\"hi\" class=\"ds-navhi\">दर्शन समय</span><span class=\"ds-naven\">Timings</span></a><a class=\"ds-navlink\" aria-current=\"page\" href=\"#\"><span lang=\"hi\" class=\"ds-navhi\">कथा संग्रह</span><span class=\"ds-naven\">Kathas</span></a></nav>",
+      "css": ".ds-nav{display:flex;gap:8px;padding:12px;background:var(--color-velvet,#4b0915)}.ds-navlink{font-family: var(--font-sans, Mukta, system-ui, sans-serif);display:flex;flex-direction:column;justify-content:center;min-height:44px;padding:0 16px;border:1px solid transparent;border-radius:9999px;text-align:center;line-height:1.1;text-decoration:none;transition:border-color .2s}.ds-navlink:hover{border-color:rgb(227 176 75 / .5)}.ds-navlink[aria-current=page]{border-color:rgb(227 176 75 / .7);background:rgb(23 32 74 / .7)}.ds-navhi{font-family:var(--font-display,'Yatra One',serif);font-size:1.15rem;color:var(--color-gold,#e3b04b)}.ds-naven{font-size:.72rem;text-transform:uppercase;letter-spacing:.14em;color:var(--color-sandal,#e8cf9e)}.ds-navlink:focus-visible{outline:2px solid var(--color-marigold,#f29d16);outline-offset:3px}"
+    },
+    {
+      "name": "Clip Card",
+      "kind": "card",
+      "refersTo": "clip-card",
+      "description": "Poster card in the katha library: day pill, timing pill, diya, title, section and length.",
+      "html": "<a class=\"ds-card\" href=\"#\"><span class=\"ds-poster\"><span class=\"ds-day\">Day 3</span><span class=\"ds-tm\">1:02:10</span></span><span class=\"ds-card-body\"><span class=\"ds-card-title\">Radhe Radhe Japo</span><span class=\"ds-card-meta\">Bhajan · 7:35</span></span></a>",
+      "css": ".ds-card{font-family: var(--font-sans, Mukta, system-ui, sans-serif);display:flex;flex-direction:column;width:240px;overflow:hidden;border:1px solid rgb(227 176 75 / .3);border-radius:4px;background:var(--color-shyam,#17204a);text-decoration:none;box-shadow:0 10px 22px -12px rgb(0 0 0 / .7);transition:border-color .2s}.ds-card:hover{border-color:var(--color-marigold,#f29d16)}.ds-poster{position:relative;display:block;aspect-ratio:16/9;background:radial-gradient(80% 80% at 50% 40%,#5c0d1a,#2c040b)}.ds-day{position:absolute;left:8px;top:8px;padding:2px 10px;border-radius:9999px;background:rgb(75 9 21 / .9);color:var(--color-gold,#e3b04b);font-size:.78rem;font-weight:600}.ds-tm{position:absolute;right:8px;bottom:8px;padding:2px 10px;border-radius:9999px;background:rgb(23 32 74 / .9);color:var(--color-gold,#e3b04b);font-size:.8rem;font-weight:600;font-variant-numeric:tabular-nums}.ds-card-body{display:block;padding:10px 12px 12px}.ds-card-title{display:block;font-family:var(--font-serif,'Tiro Devanagari Hindi',serif);font-size:1.08rem;line-height:1.375;color:var(--color-ivory,#f8e9cb)}.ds-card:hover .ds-card-title{color:var(--color-marigold,#f29d16)}.ds-card-meta{display:block;margin-top:2px;font-size:.78rem;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--color-mist,#c3c8ea)}.ds-card:focus-visible{border-color:var(--color-marigold,#f29d16);outline:2px solid var(--color-marigold,#f29d16);outline-offset:3px}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Jhanki Darshan",
+    "overview": "**Creative North Star: \"Jhanki Darshan\"**\n\nThe site is a temple jhanki, not a video library. Each bhajan sits behind a velvet pat inside an arched brass mandir; tapping it draws the pat aside to the pillars and the video plays in the sanctum. Around the shrine the world is a festival doorway: a marigold-and-mango-leaf toran across the top of every page, a maroon velvet ground with real pile, and a Shyam-blue timings board in a brass frame listing every darshan by its time in the katha.\n\nDensity is calm and devotional. One shrine, one board, one credit line; the interface steps back once a bhajan plays. Ornament is authored SVG geometry (cusped nine-lobe arch, lotus-petal moulding, kalash, pillars, toran, diya, mor pankh), never stock imagery or icon-font decoration. Devanagari is a first-class script: display type is Devanagari gold, titles may be Hindi or Hinglish, and both render in the same serif.\n\nThe home board and the up-next panel refuse the dark thumbnail grid: clips are listed as names against times. The one place thumbnails appear is the katha library (/kathas), where a small poster card is the honest way to browse many kathas and days; those cards still sit on Shyam with a gold hairline, never as loose cards on the velvet, and the playing surfaces stay thumbnail-free.",
+    "keyCharacteristics": [
+      "Maroon velvet ground (procedural tile plus a lit crown gradient), dark color scheme throughout.",
+      "Two lit materials on the ground: brass/gold (frames, display type, timings) and Shyam blue (the board and panels that hold lists).",
+      "Marigold is the action and state colour: the Play/Pause and Play-all buttons, the focus ring on non-field controls, pressed toggles and hearts (outlined, not filled), progress, hover on titles.",
+      "Timings are a tabular column, always.",
+      "Played rows are lit diyas; unplayed rows are unlit clay diyas.",
+      "Motion is the pat: slow expo-out reveal, a hover peek, a delayed drape; everything else is quiet colour transition."
+    ],
+    "rules": [
+      {
+        "name": "The Two Grounds Rule",
+        "body": "Text colour follows the ground it sits on: Sandalwood is the secondary text on velvet, Mist is the secondary text on Shyam. Never swap them.",
+        "section": "colors"
+      },
+      {
+        "name": "The Marigold Means Live Rule",
+        "body": "Marigold marks what is happening or what you can act on now (focus, pressed, favourited, progress, play). Gold marks what is (timings, headings, selected section). Don't use marigold as decoration.",
+        "section": "colors"
+      },
+      {
+        "name": "The Shyam Holds Lists Rule",
+        "body": "Any list of clips or kathas sits on a Shyam surface (a brass edge on the board, katha list and up-next panel; a gold hairline on the library's poster cards). Lists are never laid directly on the velvet.",
+        "section": "colors"
+      },
+      {
+        "name": "The Tabular Timings Rule",
+        "body": "Every time and duration uses tabular numerals (the `.tabular` class) and, in lists, sits in its own fixed-width grid column (6.6rem phone, 8.4rem desktop on the board; 9.5rem in admin) so times align top to bottom.",
+        "section": "typography"
+      },
+      {
+        "name": "The Lang Attribute Rule",
+        "body": "Every Devanagari string carries `lang=\"hi\"`; mixed titles take their lang from the title itself, and an English gloss nested inside Hindi carries `lang=\"en\"`.",
+        "section": "typography"
+      },
+      {
+        "name": "The Gloss Rule",
+        "body": "A Devanagari display heading is followed on the same baseline by its plain English meaning in smaller Mukta (Sandalwood on velvet, Mist on Shyam). The Devanagari leads; the English explains. Inside a running meta line the gloss runs the other way: the Yatra One Devanagari word sits inline in Gold at 1.1rem, with no heading or label above it.",
+        "section": "typography"
+      },
+      {
+        "name": "The Fit-H Rule",
+        "body": "Never give a must-fit element a fixed height. Size it from `--fit-h` minus what must share the screen with it.",
+        "section": "layout"
+      },
+      {
+        "name": "The Shrine Geometry Rule",
+        "body": "The shrine's 1000 x 632 box and 4% crown are fixed; scale the whole shrine, never stretch or crop parts of it.",
+        "section": "layout"
+      },
+      {
+        "name": "The Hanging Objects Rule",
+        "body": "Only things that hang or stand in the shrine space (frame, board, panel, poster card, popover, toran, floating call) cast shadows, always downward and soft. Rows, tabs, chips, fields and buttons are flat, with one small exception: the round Play/Pause button carries a short contact shadow (`0 6px 14px -4px rgb(0 0 0 / 0.6)`) so it reads as pressed into the control row.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** size every must-fit element (shrine, controls row, aside, any modal) from `--fit-h` and check it at 1920x993, 1728x960, 1486x754 and 1536x730 plus phone widths.",
+      "**Do** keep the shrine at its 1000 x 632 geometry with 4% crown headroom, scaled through `shrineMaxWidth(reserve)`.",
+      "**Do** keep timings in one tabular column, Zari Gold, start to end with an en dash.",
+      "**Do** put `lang=\"hi\"` on every Devanagari string.",
+      "**Do** put lists of clips on Shyam inside a brass edge, with diyas marking played state.",
+      "**Do** use the head, block, group and section-py tokens for vertical spacing between blocks and sections.",
+      "**Do** keep tap targets at 44px or more (40px is the floor for dense library chips and search; hearts on rows are 40px).",
+      "**Do** keep laptops exactly one screen tall and let only lists scroll inside themselves.",
+      "**Do** use the one filled Marigold control per surface for the primary action (Play/Pause, Play all); every toggle stays outlined.",
+      "**Do** keep the credit to Pujya Shri Indresh Upadhyay Ji Maharaj and the BhaktiPath channel visible on every page."
+    ],
+    "donts": [
+      "**Don't** let the pat cover the video once it is open; the opened pat hangs only over the pillars.",
+      "**Don't** list clips on the home board or in up-next as a thumbnail grid; there they are names against times. Poster cards belong to the katha library only, and never sit loose on the velvet.",
+      "**Don't** put a kicker or eyebrow label above a heading; uppercase tracked labels are for video-group headings, category tags and the brand transliteration only.",
+      "**Don't** use hard offset shadows or glowing UI; shadows are soft, downward and only on hanging objects (a lit diya's flame halo is the flame, not a UI glow).",
+      "**Don't** use marigold decoratively, or swap Sandalwood and Mist between grounds.",
+      "**Don't** give a must-fit element a fixed pixel height that only fits a tall screen.",
+      "**Don't** replace authored SVG ornament with icon-font glyphs, emoji or stock art."
+    ]
+  }
+}

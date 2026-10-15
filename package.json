@@ -1,0 +1,41 @@
+{
+  "name": "shravanam-kirtanam",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --port 3100",
+    "build": "next build",
+    "start": "next start --port 3100",
+    "lint": "eslint",
+    "typecheck": "next typegen && tsc --noEmit",
+    "test": "vitest run",
+    "clip": "tsx scripts/clip.ts",
+    "check:screens": "node scripts/check-screens.mjs --base http://localhost:3100",
+    "find": "tsx scripts/find-bhajans.ts",
+    "check:fit": "node scripts/check-fit.mjs"
+  },
+  "dependencies": {
+    "@vercel/functions": "^3.9.11",
+    "lucide-react": "^1.56.0",
+    "mongodb": "^7.7.0",
+    "next": "16.4.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@tailwindcss/turbopack": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.4.0",
+    "tailwindcss": "^4",
+    "tsx": "^4.23.15",
+    "typescript": "^5",
+    "vitest": "^4.1.11"
+  },
+  "engines": {
+    "node": ">=20.19"
+  }
+}

@@ -1,0 +1,16 @@
+/* Everything you can press shows the hand cursor (Tailwind v4 resets buttons to the arrow). */
+@layer base {
+  button:not(:disabled),
+  [role="button"],
+  [role="tab"],
+  [role="slider"],
+  summary,
+  select,
+  label:has(> input[type="radio"]),
+  label:has(> input[type="checkbox"]) {
+    cursor: pointer;
+  }
+  button:disabled {
+    cursor: not-allowed;
+  }
+}

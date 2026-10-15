@@ -1,0 +1,207 @@
+@import "tailwindcss";
+
+/* `short:` — a laptop-width window that is short (e.g. 1536x730, 1486x754).
+   Tall screens like 1920x993 never match, so their layout never moves. */
+@custom-variant short {
+  @media (min-width: 64rem) and (max-height: 52rem) {
+    @slot;
+  }
+}
+
+@theme {
+  /* Jhanki Darshan palette */
+  --color-velvet: #4b0915; /* the pat and the ground */
+  --color-velvet-deep: #2c040b;
+  --color-velvet-lit: #6e1324;
+  --color-gold: #e3b04b; /* zari, brass, display type */
+  --color-brass: #b8862b;
+  --color-brass-dark: #7a5414;
+  --color-marigold: #f29d16;
+  --color-marigold-deep: #d9700a;
+  --color-leaf: #3f7a35;
+  --color-shyam: #17204a; /* Krishna's colour: the timings board */
+  --color-shyam-lit: #222d63;
+  --color-ivory: #f8e9cb; /* text on velvet */
+  --color-sandal: #e8cf9e; /* secondary text on velvet */
+  --color-mist: #c3c8ea; /* secondary text on shyam */
+
+  --font-display: var(--font-yatra), "Tiro Devanagari Hindi", serif;
+  --font-serif: var(--font-tiro), serif;
+  --font-sans: var(--font-mukta), system-ui, sans-serif;
+
+  /* Vertical rhythm (see ~/.claude/references/spacing-and-screen-height.md) */
+  --spacing-head: 1.5rem;
+  --spacing-block: clamp(2rem, calc(1.781rem + 0.899vw), 2.5rem);
+  --spacing-group: clamp(3rem, calc(2.562rem + 1.798vw), 4rem);
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+:root {
+  --section-py: clamp(2.875rem, calc(1.779rem + 4.494vw), 5.375rem);
+  /* header = toran strip + brand row; measured in the browser */
+  --nav-h: 108px;
+  --fit-h: calc(100svh - var(--nav-h) - 2rem);
+  color-scheme: dark;
+}
+
+@media (max-width: 47.99rem) {
+  :root {
+    --nav-h: 100px;
+  }
+}
+
+html {
+  background: var(--color-velvet-deep);
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  min-height: 100svh;
+  color: var(--color-ivory);
+  font-family: var(--font-sans);
+  font-size: 1.0625rem;
+  line-height: 1.55;
+  /* velvet: a lit crown, fine vertical pile, falling into shadow */
+  background:
+    radial-gradient(110% 60% at 50% -10%, rgb(150 30 52 / 0.55), transparent 62%),
+    linear-gradient(180deg, rgb(0 0 0 / 0) 0%, rgb(20 2 6 / 0.55) 100%),
+    url("/velvet.jpg") 0 0 / 480px 480px repeat,
+    var(--color-velvet);
+  background-attachment: fixed;
+}
+
+::selection {
+  background: var(--color-marigold);
+  color: var(--color-velvet-deep);
+}
+
+/* Keyboard focus ring. In the base layer, so a component's own focus style
+   (e.g. the pill search fields) wins; the outline follows each element's own
+   corner radius instead of forcing a rectangle. */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--color-marigold);
+    outline-offset: 3px;
+  }
+}
+
+* {
+  scrollbar-color: var(--color-brass) var(--color-velvet-deep);
+}
+
+a {
+  text-underline-offset: 0.2em;
+}
+
+input,
+select,
+textarea {
+  caret-color: var(--color-marigold);
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.section-y {
+  padding-top: var(--section-py);
+  padding-bottom: var(--section-py);
+}
+
+/* ---------- The pat (temple curtain) ----------
+   Closed: two velvet halves meet at the centre of the arched opening.
+   Open: each half is drawn aside (slides out under the frame) and the
+   gathered pat appears tied back over its pillar; the video is never covered. */
+.pat-half {
+  transition: transform 1.15s var(--ease-out-expo);
+  will-change: transform;
+}
+[data-pat="open"] .pat-half-l {
+  transform: translateX(-102%);
+}
+[data-pat="open"] .pat-half-r {
+  transform: translateX(102%);
+}
+/* Peek: on hover the halves part a hand's width, inviting the tap. */
+[data-pat="closed"]:hover .pat-half-l,
+[data-pat="closed"]:focus-within .pat-half-l {
+  transform: translateX(-7%);
+}
+[data-pat="closed"]:hover .pat-half-r,
+[data-pat="closed"]:focus-within .pat-half-r {
+  transform: translateX(7%);
+}
+.drape {
+  opacity: 0;
+  transform: scaleY(0.82);
+  transform-origin: 50% 0;
+  transition:
+    opacity 0.6s ease-out,
+    transform 0.9s var(--ease-out-expo);
+}
+[data-pat="open"] .drape {
+  opacity: 1;
+  transform: none;
+  transition-delay: 0.35s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pat-half,
+  .drape {
+    transition-duration: 0.01ms;
+    transition-delay: 0s;
+  }
+}
+
+/* Diya flame flicker (lit rows only) */
+@keyframes flicker {
+  0%, 100% { transform: scale(1, 1); opacity: 1; }
+  40% { transform: scale(0.92, 1.08); opacity: 0.9; }
+  70% { transform: scale(1.05, 0.95); opacity: 1; }
+}
+.flame {
+  transform-origin: 50% 100%;
+  transform-box: fill-box;
+  animation: flicker 2.6s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .flame {
+    animation: none;
+  }
+}
+
+/* Admin editor buttons */
+@layer components {
+  .btn-mark,
+  .btn-ghost {
+    display: inline-flex;
+    min-height: 2.875rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 9999px;
+    padding: 0 1rem;
+    font-weight: 600;
+    transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+  }
+  .btn-mark {
+    background: var(--color-marigold);
+    color: var(--color-velvet-deep);
+  }
+  .btn-mark:hover {
+    background: #ffb32e;
+  }
+  .btn-ghost {
+    border: 1px solid rgb(227 176 75 / 0.4);
+    color: var(--color-sandal);
+  }
+  .btn-ghost:hover {
+    border-color: var(--color-gold);
+    color: var(--color-ivory);
+  }
+  .btn-mark:disabled,
+  .btn-ghost:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
