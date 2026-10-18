@@ -24,6 +24,12 @@ function set(next: Account) {
 function load() {
   if (started) return;
   started = true;
+  refreshAccount();
+}
+
+/** Ask the server who is signed in now (after an email sign-in or sign-up, which doesn't reload the page). */
+export function refreshAccount() {
+  started = true;
   fetch("/api/me", { cache: "no-store" })
     .then((r) => r.json() as Promise<{ user: Account["user"]; favs?: string[]; recent?: string[]; played?: string[] }>)
     .then((d) => set(d.user ? { status: "in", user: d.user, favs: d.favs ?? [], recent: d.recent ?? [], played: d.played ?? [] } : { ...LOADING, status: "out" }))

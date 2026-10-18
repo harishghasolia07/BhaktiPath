@@ -4,9 +4,12 @@ import { Suspense } from "react";
 import { Pencil } from "lucide-react";
 import { ClipCard } from "@/components/ClipCard";
 import { AuthForms } from "@/components/my/AuthForms";
+import { ResendVerification } from "@/components/my/ResendVerification";
+import { SyncAccount } from "@/components/my/SyncAccount";
 import { MyVideoForm } from "@/components/my/MyVideoForm";
 import { getAccounts } from "@/lib/accounts";
 import { googleConfigured } from "@/lib/google";
+import { mailAvailable } from "@/lib/mail";
 import { currentUser } from "@/lib/user-session";
 
 export const metadata: Metadata = { title: "My videos" };
@@ -16,11 +19,12 @@ const ERRORS: Record<string, string> = {
   state: "That sign-in took too long or was interrupted. Please try again.",
   google: "Google didn't confirm the sign-in. Please try again.",
   "not-configured": "Sign-in isn't set up on this site yet.",
+  link: "That link has expired or isn't valid. If you need a new one, use “Send it again” below.",
 };
 
 export default function MyPage(props: PageProps<"/my">) {
   return (
-    <main className="mx-auto w-full max-w-[1100px] px-4 pb-10 pt-6 sm:px-6">
+    <main className="mx-auto w-full max-w-[1320px] px-4 pb-10 pt-6 sm:px-6 lg:pb-0 lg:pt-4">
       <Suspense fallback={<p className="text-sandal">Loading…</p>}>
         <Body search={props.searchParams} />
       </Suspense>
@@ -59,18 +63,27 @@ async function Body({ search }: { search: PageProps<"/my">["searchParams"] }) {
   }
   const videos = await getAccounts().listVideos(user.id);
   return (
-    <div className="flex flex-col gap-10">
-      <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
-        <section aria-labelledby="mine">
-          <h1 id="mine" className="font-serif text-[clamp(1.9rem,1.4rem+1.5vw,2.6rem)] leading-tight text-ivory">
+    <div className="flex flex-col gap-10 lg:h-[calc(var(--fit-h)-1rem)] lg:gap-4">
+      <SyncAccount />
+      {sp.verified && <p role="status" className="rounded-[8px] border border-gold/40 px-4 py-3 text-ivory lg:shrink-0">Thank you, your email is confirmed.</p>}
+      {error && <p role="alert" className="text-marigold lg:shrink-0">{error}</p>}
+      {!user.verified && mailAvailable() && (
+        <p role="status" className="rounded-[8px] border border-marigold/50 px-4 py-3 text-sandal lg:shrink-0">
+          Please confirm your email: we sent a link to <strong className="text-ivory">{user.email}</strong>. <ResendVerification />
+        </p>
+      )}
+      <div className="grid gap-10 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,32rem)] lg:gap-8">
+        <section aria-labelledby="mine" className="lg:flex lg:min-h-0 lg:flex-col">
+          <h1 id="mine" className="font-serif lg:shrink-0 text-[clamp(1.9rem,1.4rem+1.5vw,2.6rem)] leading-tight text-ivory">
             My videos
           </h1>
-          <div className="mb-6 mt-1 text-sandal">
+          <div className="mb-6 mt-1 text-sandal lg:mb-4 lg:shrink-0">
             Hello, {user.name.split(" ")[0]}. {videos.length ? `${videos.length} saved, private to you.` : "Nothing saved yet."}{" "}
             <form action="/api/auth/logout" method="post" className="inline">
               <button className="text-sandal underline decoration-gold/40 hover:text-ivory hover:decoration-gold">Sign out</button>
             </form>
           </div>
+          <div className="lg:-mr-2 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain lg:pr-2" data-may-scroll>
           {videos.length === 0 ? (
             <p className="rounded-[8px] border border-gold/25 p-5 text-sandal">Add your first YouTube video with the form, and it will appear here.</p>
           ) : (
@@ -89,8 +102,9 @@ async function Body({ search }: { search: PageProps<"/my">["searchParams"] }) {
               ))}
             </ul>
           )}
+          </div>
         </section>
-        <section aria-labelledby="add" className="h-fit rounded-[10px] border border-gold/30 bg-shyam/60 p-5">
+        <section aria-labelledby="add" className="h-fit rounded-[10px] border border-gold/30 bg-shyam/60 p-5 lg:max-h-full lg:overflow-y-auto lg:overscroll-contain lg:p-6" data-may-scroll>
           <h2 id="add" className="mb-4 font-serif text-[1.5rem] text-ivory">
             Add a YouTube video
           </h2>

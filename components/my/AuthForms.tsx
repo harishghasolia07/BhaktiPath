@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import Link from "next/link";
 import { signIn, signUp } from "@/app/my/auth-actions";
 
 const field =
@@ -61,6 +62,11 @@ export function AuthForms() {
           <p role="alert" className="text-[0.95rem] text-marigold">
             {state.error}
           </p>
+        )}
+        {!up && (
+          <Link href="/my/forgot" className="-mt-1 w-fit text-[0.95rem] text-sandal underline decoration-gold/40 hover:text-ivory hover:decoration-gold">
+            Forgot your password?
+          </Link>
         )}
         <button disabled={up ? upPending : inPending} className="h-12 rounded-full bg-gold font-semibold text-shyam transition-opacity hover:bg-marigold disabled:opacity-60">
           {(up ? upPending : inPending) ? "Please wait…" : up ? "Create my account" : "Sign in"}

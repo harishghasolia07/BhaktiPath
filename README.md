@@ -101,8 +101,11 @@ Setup (once):
    variables, then redeploy. `ADMIN_SESSION_SECRET` (32+ characters) also signs the visitor cookie.
 
 Email and password also work, side by side with Google (no setup needed): a "Sign in / Create account" form on `/my`.
-Passwords are stored as salted scrypt hashes; five wrong tries pause an account for ten minutes. There is no
-verification email and no "forgot password" yet (both need an email service). If someone later signs in with
+Passwords are stored as salted scrypt hashes; five wrong tries pause an account for ten minutes. New password accounts are sent a
+"confirm your email" link, and "Forgot your password?" emails a one-hour, single-use reset link. Mail is sent
+from a Gmail account: set `SMTP_USER` (the Gmail address) and `SMTP_PASS` (a Gmail *app password*: Google
+Account → Security → 2-Step Verification → App passwords). Without them no mail is sent (in development it is
+written to `.data/outbox.log` instead). If someone later signs in with
 Google using the same email, the accounts merge and the old password is removed. Without the two Google
 variables the Google button is hidden and email/password still works. Accounts and videos are stored in the same MongoDB database (`users`, `uservideos`), or in
 `.data/users.json` / `.data/uservideos.json` when no database is configured.

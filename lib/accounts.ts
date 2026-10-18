@@ -11,6 +11,8 @@ export type User = {
   name: string;
   email: string;
   picture: string;
+  /** Google accounts count as verified; password accounts once they open the emailed link. */
+  verified: boolean;
   favs: string[];
   recent: string[];
   played: string[];
@@ -18,7 +20,8 @@ export type User = {
 
 export type GoogleProfile = { sub: string; name: string; email: string; picture: string };
 
-export type Credentials = { id: string; passwordHash: string | null; lockedUntil: number };
+export type Credentials = { id: string; email: string; name: string; passwordHash: string | null; lockedUntil: number; lastMail: Record<MailKind, number>; verified: boolean };
+export type MailKind = "verify" | "reset";
 
 export class AccountError extends Error {
   constructor(public readonly code: "exists" | "google-only") {
@@ -39,6 +42,12 @@ export interface AccountStore {
   /** A new email-and-password account. Throws AccountError("exists") if the email is taken. */
   createPasswordUser(p: { name: string; email: string; passwordHash: string }): Promise<User>;
   getCredentials(email: string): Promise<Credentials | null>;
+  getCredentialsById(id: string): Promise<Credentials | null>;
+  markVerified(userId: string): Promise<void>;
+  /** Sets a new password; also verifies the email (they just proved they own it) and clears any lockout. */
+  setPassword(userId: string, passwordHash: string): Promise<void>;
+  /** Remembers when an email was last sent to this person (to limit how often). */
+  touchMail(userId: string, kind: MailKind): Promise<void>;
   recordFailure(userId: string): Promise<void>;
   clearFailures(userId: string): Promise<void>;
   getUser(id: string): Promise<User | null>;
@@ -79,14 +88,25 @@ const addFirst = (list: string[], key: string, max: number) => [key, ...list.fil
 
 /* ---------------- MongoDB ---------------- */
 
-type UserDoc = { _id: ObjectId; sub?: string; name: string; email: string; picture: string; passwordHash?: string; failed?: number; lockedUntil?: Date; favs: string[]; recent: string[]; played: string[]; createdAt: Date };
+type UserDoc = { _id: ObjectId; sub?: string; name: string; email: string; picture: string; passwordHash?: string; verified?: boolean; lastMail?: Partial<Record<MailKind, Date>>; failed?: number; lockedUntil?: Date; favs: string[]; recent: string[]; played: string[]; createdAt: Date };
 type VideoDoc = Omit<VideoRow, "id" | "createdAt" | "updatedAt"> & { _id: ObjectId; createdAt: Date; updatedAt: Date };
+
+const credOf = (d: UserDoc): Credentials => ({
+  id: d._id.toHexString(),
+  email: d.email,
+  name: d.name,
+  passwordHash: d.passwordHash ?? null,
+  lockedUntil: d.lockedUntil?.getTime() ?? 0,
+  lastMail: { verify: d.lastMail?.verify?.getTime() ?? 0, reset: d.lastMail?.reset?.getTime() ?? 0 },
+  verified: Boolean(d.sub) || Boolean(d.verified),
+});
 
 const userOf = (d: UserDoc): User => ({
   id: d._id.toHexString(),
   name: d.name,
   email: d.email,
   picture: d.picture,
+  verified: Boolean(d.sub) || Boolean(d.verified),
   favs: d.favs ?? [],
   recent: d.recent ?? [],
   played: d.played ?? [],
@@ -154,7 +174,26 @@ function mongoAccounts(db: Db): AccountStore {
     async getCredentials(email) {
       await init();
       const d = await users.findOne({ email: normEmail(email) });
-      return d ? { id: d._id.toHexString(), passwordHash: d.passwordHash ?? null, lockedUntil: d.lockedUntil?.getTime() ?? 0 } : null;
+      return d ? credOf(d) : null;
+    },
+    async getCredentialsById(id) {
+      const _id = oid(id);
+      if (!_id) return null;
+      await init();
+      const d = await users.findOne({ _id });
+      return d ? credOf(d) : null;
+    },
+    async markVerified(userId) {
+      const _id = oid(userId);
+      if (_id) await users.updateOne({ _id }, { $set: { verified: true } });
+    },
+    async setPassword(userId, passwordHash) {
+      const _id = oid(userId);
+      if (_id) await users.updateOne({ _id }, { $set: { passwordHash, verified: true, failed: 0 }, $unset: { lockedUntil: "" } });
+    },
+    async touchMail(userId, kind) {
+      const _id = oid(userId);
+      if (_id) await users.updateOne({ _id }, { $set: { [`lastMail.${kind}`]: new Date() } });
     },
     async recordFailure(userId) {
       const _id = oid(userId);
@@ -236,7 +275,8 @@ function fileAccounts(): AccountStore {
   const dir = path.join(process.cwd(), ".data");
   const usersFile = path.join(dir, "users.json");
   const videosFile = path.join(dir, "uservideos.json");
-  type UserRow = User & { sub?: string; passwordHash?: string; failed?: number; lockedUntil?: number };
+  type UserRow = User & { sub?: string; passwordHash?: string; failed?: number; lockedUntil?: number; lastMail?: Partial<Record<MailKind, number>> };
+  const cred = (u: UserRow): Credentials => ({ id: u.id, email: u.email, name: u.name, passwordHash: u.passwordHash ?? null, lockedUntil: u.lockedUntil ?? 0, lastMail: { verify: u.lastMail?.verify ?? 0, reset: u.lastMail?.reset ?? 0 }, verified: Boolean(u.sub) || u.verified });
   const read = async <T,>(f: string): Promise<T[]> => {
     try {
       return JSON.parse(await fs.readFile(f, "utf8")) as T[];
@@ -255,7 +295,7 @@ function fileAccounts(): AccountStore {
     fn(u);
     await write(usersFile, all);
   };
-  const strip = ({ sub: _sub, passwordHash: _h, failed: _f, lockedUntil: _l, ...u }: UserRow): User => u;
+  const strip = ({ sub: _sub, passwordHash: _h, failed: _f, lockedUntil: _l, lastMail: _m, ...u }: UserRow): User => ({ ...u, verified: Boolean(_sub) || Boolean(u.verified) });
 
   return {
     async upsertGoogleUser(p) {
@@ -266,7 +306,7 @@ function fileAccounts(): AccountStore {
         const linking = !u.sub;
         Object.assign(u, { sub: p.sub, email, picture: p.picture, ...(linking ? { name: p.name } : {}) });
         delete u.passwordHash, delete u.failed, delete u.lockedUntil;
-      } else all.push((u = { id: new ObjectId().toHexString(), sub: p.sub, name: p.name, email, picture: p.picture, favs: [], recent: [], played: [] }));
+      } else all.push((u = { id: new ObjectId().toHexString(), sub: p.sub, name: p.name, email, picture: p.picture, verified: true, favs: [], recent: [], played: [] }));
       await write(usersFile, all);
       return strip(u);
     },
@@ -275,13 +315,33 @@ function fileAccounts(): AccountStore {
       const email = normEmail(p.email);
       const other = all.find((x) => x.email === email);
       if (other) throw new AccountError(other.passwordHash ? "exists" : "google-only");
-      const u: UserRow = { id: new ObjectId().toHexString(), name: p.name, email, picture: "", passwordHash: p.passwordHash, favs: [], recent: [], played: [] };
+      const u: UserRow = { id: new ObjectId().toHexString(), name: p.name, email, picture: "", verified: false, passwordHash: p.passwordHash, favs: [], recent: [], played: [] };
       await write(usersFile, [...all, u]);
       return strip(u);
     },
     async getCredentials(email) {
       const u = (await read<UserRow>(usersFile)).find((x) => x.email === normEmail(email));
-      return u ? { id: u.id, passwordHash: u.passwordHash ?? null, lockedUntil: u.lockedUntil ?? 0 } : null;
+      return u ? cred(u) : null;
+    },
+    async getCredentialsById(id) {
+      const u = (await read<UserRow>(usersFile)).find((x) => x.id === id);
+      return u ? cred(u) : null;
+    },
+    async markVerified(userId) {
+      await editUser(userId, (u) => {
+        u.verified = true;
+      });
+    },
+    async setPassword(userId, passwordHash) {
+      await editUser(userId, (u) => {
+        Object.assign(u, { passwordHash, verified: true, failed: 0 });
+        delete u.lockedUntil;
+      });
+    },
+    async touchMail(userId, kind) {
+      await editUser(userId, (u) => {
+        u.lastMail = { ...u.lastMail, [kind]: Date.now() };
+      });
     },
     async recordFailure(userId) {
       await editUser(userId, (u) => {
@@ -376,6 +436,10 @@ export function getAccounts(): AccountStore {
     upsertGoogleUser: lazy("upsertGoogleUser"),
     createPasswordUser: lazy("createPasswordUser"),
     getCredentials: lazy("getCredentials"),
+    getCredentialsById: lazy("getCredentialsById"),
+    markVerified: lazy("markVerified"),
+    setPassword: lazy("setPassword"),
+    touchMail: lazy("touchMail"),
     recordFailure: lazy("recordFailure"),
     clearFailures: lazy("clearFailures"),
     getUser: lazy("getUser"),
