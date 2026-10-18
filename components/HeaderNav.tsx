@@ -22,7 +22,7 @@ function AccountLink({ path }: { path: string | null }) {
       href="/my"
       aria-current={on ? "page" : undefined}
       aria-label={acct.user ? `My videos, signed in as ${acct.user.name}` : "Sign in"}
-      className="ml-0.5 flex min-h-11 items-center gap-2 rounded-full border border-transparent px-2 text-gold no-underline transition-colors hover:border-gold/50 aria-[current=page]:border-gold/70 aria-[current=page]:bg-shyam/70 sm:px-3"
+      className="ml-0.5 flex min-h-11 items-center gap-2 rounded-full border border-transparent px-2 max-[399px]:px-0.5 text-gold no-underline transition-colors hover:border-gold/50 aria-[current=page]:border-gold/70 aria-[current=page]:bg-shyam/70 sm:px-3"
     >
       <span className="grid size-8 shrink-0 place-items-center overflow-hidden rounded-full border border-gold/50 bg-shyam">
         {acct.user?.picture ? (
@@ -49,9 +49,9 @@ function Links({ path }: { path: string | null }) {
             key={l.href}
             href={l.href}
             aria-current={on ? "page" : undefined}
-            className="flex min-h-11 flex-col justify-center whitespace-nowrap rounded-full border border-transparent px-2.5 text-center max-[359px]:px-1.5 leading-tight no-underline transition-colors hover:border-gold/50 aria-[current=page]:border-gold/70 aria-[current=page]:bg-shyam/70 sm:px-4"
+            className="flex min-h-11 flex-col justify-center whitespace-nowrap rounded-full border border-transparent px-2.5 text-center max-[399px]:px-1.5 max-[359px]:px-1 leading-tight no-underline transition-colors hover:border-gold/50 aria-[current=page]:border-gold/70 aria-[current=page]:bg-shyam/70 sm:px-4"
           >
-            <span lang="hi" className="font-display text-[0.98rem] text-gold max-[359px]:text-[0.88rem] sm:text-[1.15rem]">
+            <span lang="hi" className="font-display text-[0.98rem] text-gold max-[399px]:text-[0.9rem] max-[359px]:text-[0.85rem] sm:text-[1.15rem]">
               {l.hi}
             </span>
             <span className="hidden text-[0.72rem] uppercase tracking-[0.14em] text-sandal sm:block">{l.en}</span>

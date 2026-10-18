@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { ChevronLeft, ExternalLink } from "lucide-react";
 import { getAccounts } from "@/lib/accounts";
+import { findDuplicates } from "@/lib/duplicates";
 import { CATEGORY_LABELS } from "@/lib/clip-schema";
 import { langOf } from "@/lib/display";
 import { isAdmin } from "@/lib/session";
@@ -12,6 +13,8 @@ import { formatLength, formatTime, thumbnailUrl, youtubeAtUrl } from "@/lib/yout
 import { approveSubmission, rejectSubmission } from "../actions";
 
 export const metadata: Metadata = { title: "Submissions" };
+
+const DUP_REASON = { overlap: "same video, overlapping", near: "same video, within a minute", title: "same name, another video" } as const;
 
 export default function SubmissionsPage(props: PageProps<"/admin/submissions">) {
   return (
@@ -52,7 +55,8 @@ async function List({ searchParams }: { searchParams: PageProps<"/admin/submissi
       ) : (
         <ul className="flex flex-col gap-5">
           {pending.map(({ video: v, by }) => {
-            const overlaps = clips.filter((c) => c.videoId === v.videoId && c.start < v.end && c.end > v.start);
+            const others = pending.filter((o) => o.video.id !== v.id).map((o) => ({ ...o.video, title: `${o.video.title} (also requested by ${o.by.name})` }));
+            const overlaps = findDuplicates(v, [...clips, ...others]).map((d) => ({ ...d.with, why: DUP_REASON[d.reason] }));
             return (
               <li key={v.id} className="grid gap-4 rounded-[10px] border border-gold/30 bg-shyam/60 p-4 sm:grid-cols-[14rem_1fr]">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -72,7 +76,7 @@ async function List({ searchParams }: { searchParams: PageProps<"/admin/submissi
                   {v.lyrics && <p className="line-clamp-3 whitespace-pre-line font-serif text-[0.95rem] text-sandal">{v.lyrics}</p>}
                   {overlaps.length > 0 && (
                     <p role="status" className="rounded-[6px] border border-marigold/50 px-3 py-2 text-[0.9rem] text-sandal">
-                      Already in the collection (overlaps): {overlaps.map((c) => `“${c.title}” (${formatTime(c.start)} – ${formatTime(c.end)})`).join(", ")}.
+                      Possibly already there: {overlaps.map((c) => `“${c.title}” (${c.why}, ${formatTime(c.start)} – ${formatTime(c.end)})`).join("; ")}.
                     </p>
                   )}
                   <a href={youtubeAtUrl(v.videoId, v.start)} target="_blank" rel="noopener noreferrer" className="inline-flex w-fit items-center gap-1.5 text-[0.95rem] text-sandal underline decoration-gold/40 hover:text-ivory">

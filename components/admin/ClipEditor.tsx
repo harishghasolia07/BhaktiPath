@@ -6,6 +6,7 @@ import { ChevronLeft, Flag, Play, SkipForward } from "lucide-react";
 import { lookupVideo, saveClip } from "@/app/admin/actions";
 import { CATEGORIES, CATEGORY_LABELS, type Clip } from "@/lib/clip-schema";
 import { formatLength, formatTime, parseTime, parseVideoId, startFromUrl } from "@/lib/youtube";
+import { findDuplicates } from "@/lib/duplicates";
 import { loadYouTubeApi, type YTPlayer } from "@/lib/yt-player";
 
 const field =
@@ -13,12 +14,15 @@ const field =
 
 type Existing = { id: string; title: string; videoId: string; start: number; end: number };
 
+const DUP_REASON = { overlap: "same video, overlapping", near: "same video, within a minute", title: "same name, another video" } as const;
+
 export function ClipEditor({ clip, existing = [] }: { clip?: Clip; existing?: Existing[] }) {
   const [state, action, pending] = useActionState(saveClip, undefined);
   const [link, setLink] = useState(clip ? `https://www.youtube.com/watch?v=${clip.videoId}` : "");
   const [start, setStart] = useState(clip ? formatTime(clip.start) : "");
   const [end, setEnd] = useState(clip ? formatTime(clip.end) : "");
   const [videoTitle, setVideoTitle] = useState(clip?.videoTitle ?? "");
+  const [title, setTitle] = useState(clip?.title ?? "");
   const [ready, setReady] = useState(false);
   const videoId = parseVideoId(link);
   const host = useRef<HTMLDivElement>(null);
@@ -26,10 +30,11 @@ export function ClipEditor({ clip, existing = [] }: { clip?: Clip; existing?: Ex
 
   const s = parseTime(start);
   const e = parseTime(end);
-  // Warn (never block) when this overlaps another clip of the same video.
-  const overlaps =
+  // Warn (never block) when this looks like a clip that is already there: same video overlapping or within a
+  // minute, or the same name on another video.
+  const dups =
     videoId && s !== null && e !== null && e > s
-      ? existing.filter((x) => x.id !== clip?.id && x.videoId === videoId && x.start < e && x.end > s)
+      ? findDuplicates({ videoId, start: s, end: e, title }, existing.filter((x) => x.id !== clip?.id))
       : [];
   const err = state?.fields ?? {};
 
@@ -157,7 +162,8 @@ export function ClipEditor({ clip, existing = [] }: { clip?: Clip; existing?: Ex
             <span className="font-semibold text-sandal">Bhajan name</span>
             <input
               name="title"
-              defaultValue={clip?.title}
+              value={title}
+              onChange={(ev) => setTitle(ev.target.value)}
               placeholder="Radhe Radhe Japo Chale Aayenge Bihari"
               required
               maxLength={140}
@@ -229,10 +235,10 @@ export function ClipEditor({ clip, existing = [] }: { clip?: Clip; existing?: Ex
             <input name="tags" defaultValue={clip?.tags.join(", ")} placeholder="Radha, Holi" className={field} />
           </label>
 
-          {overlaps.length > 0 && (
+          {dups.length > 0 && (
             <p role="status" className="rounded-[6px] border border-marigold/50 px-3 py-2 text-[0.95rem] text-sandal">
-              This overlaps{" "}
-              {overlaps.map((x) => `“${x.title}” (${formatTime(x.start)} – ${formatTime(x.end)})`).join(", ")}. You can still save it.
+              Possibly already there:{" "}
+              {dups.map((d) => `“${d.with.title}” (${DUP_REASON[d.reason]}, ${formatTime(d.with.start)} – ${formatTime(d.with.end)})`).join("; ")}. You can still save it.
             </p>
           )}
 

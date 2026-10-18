@@ -7,6 +7,7 @@ import { ChevronLeft, Check, ListEnd, ListPlus, ListVideo, MoreHorizontal, Plus 
 import { addToPlaylist, createPlaylist, removeFromPlaylist } from "@/app/playlists/actions";
 import { refreshAccount, useAccount } from "@/lib/account-client";
 import type { Clip } from "@/lib/clip-schema";
+import { langOf } from "@/lib/display";
 import { usePlayer } from "./PlayerProvider";
 
 /** The "⋯" menu on a bhajan: play it next, add it to the queue, or put it in one of your playlists. */
@@ -76,12 +77,14 @@ function MenuBody({
   const [pending, start] = useTransition();
   const [error, setError] = useState("");
   const r = anchor.getBoundingClientRect();
+  // phones: a sheet along the bottom of the screen, easy to reach with a thumb
+  const sheet = window.innerWidth < 640;
   const W = 272;
   const left = Math.min(Math.max(8, r.right - W), window.innerWidth - W - 8);
   const below = window.innerHeight - r.bottom > 320 || r.top < 320;
   const pos = below ? { top: r.bottom + 6 } : { bottom: window.innerHeight - r.top + 6 };
 
-  const item = "flex w-full items-center gap-3 rounded-[6px] px-3 py-2.5 text-left text-ivory hover:bg-shyam-lit focus-visible:bg-shyam-lit focus-visible:outline-none";
+  const item = `flex w-full items-center gap-3 rounded-[6px] px-3 text-left text-ivory hover:bg-shyam-lit focus-visible:bg-shyam-lit focus-visible:outline-none ${sheet ? "min-h-12 py-3 text-[1.05rem]" : "py-2.5"}`;
 
   function toggle(listId: string, listName: string, has: boolean) {
     setError("");
@@ -106,13 +109,27 @@ function MenuBody({
   }
 
   return (
+    <>
+    {sheet && <div aria-hidden="true" className="fixed inset-0 z-[59] bg-black/55 motion-safe:animate-[fade-in_150ms_ease-out]" />}
     <div
       ref={menuRef}
       role="menu"
       aria-label={`Options for ${clip.title}`}
-      style={{ ...pos, left, width: W }}
-      className="fixed z-[60] max-h-[min(24rem,calc(100dvh-1rem))] overflow-y-auto rounded-[10px] border border-gold/50 bg-shyam p-1.5 shadow-[0_18px_40px_-8px_rgb(0_0_0/0.75)]"
+      style={sheet ? undefined : { ...pos, left, width: W }}
+      className={
+        sheet
+          ? "fixed inset-x-0 bottom-0 z-[60] max-h-[75dvh] overflow-y-auto rounded-t-[18px] border-t border-gold/50 bg-shyam px-3 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-18px_40px_-8px_rgb(0_0_0/0.75)] motion-safe:animate-[sheet-up_200ms_cubic-bezier(0.16,1,0.3,1)]"
+          : "fixed z-[60] max-h-[min(24rem,calc(100dvh-1rem))] overflow-y-auto rounded-[10px] border border-gold/50 bg-shyam p-1.5 shadow-[0_18px_40px_-8px_rgb(0_0_0/0.75)]"
+      }
     >
+      {sheet && (
+        <div className="mb-1 flex flex-col items-center gap-2 px-1">
+          <span aria-hidden="true" className="h-1.5 w-10 rounded-full bg-gold/40" />
+          <p lang={langOf(clip.title)} className="w-full truncate text-center font-serif text-[1.05rem] text-sandal">
+            {clip.title}
+          </p>
+        </div>
+      )}
       {view === "main" ? (
         <>
           <button role="menuitem" className={item} onClick={() => (p.playNext(clip), close())}>
@@ -177,6 +194,12 @@ function MenuBody({
           )}
         </>
       )}
+      {sheet && (
+        <button type="button" onClick={close} className="mt-2 h-12 w-full rounded-full border border-gold/40 font-semibold text-sandal">
+          Cancel
+        </button>
+      )}
     </div>
+    </>
   );
 }

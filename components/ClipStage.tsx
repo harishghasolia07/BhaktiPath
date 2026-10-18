@@ -15,6 +15,7 @@ import { usePlayer, type Sleep } from "./PlayerProvider";
 import { Diya } from "./ornaments";
 import { Scrubber } from "./Scrubber";
 import { Shrine, shrineMaxWidth } from "./Shrine";
+import { SyncedLyrics, useSyncedLyrics } from "./SyncedLyrics";
 
 type Props = { queue: Clip[]; initialSlug: string; queueLabel: string };
 type Tab = "next" | "lyrics";
@@ -151,8 +152,11 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
   });
 
   const cat = CATEGORY_LABELS[clip.category];
-  const tabNow: Tab = tabSel?.slug === clip.slug ? tabSel.tab : clip.lyrics ? "lyrics" : "next";
-  const showLyrics = Boolean(clip.lyrics) && tabNow === "lyrics";
+  const synced = useSyncedLyrics(clip.slug, !clip.owner);
+  const hasSynced = Boolean(synced && synced.length);
+  const hasLyrics = hasSynced || Boolean(clip.lyrics);
+  const tabNow: Tab = tabSel?.slug === clip.slug ? tabSel.tab : hasLyrics ? "lyrics" : "next";
+  const showLyrics = hasLyrics && tabNow === "lyrics";
 
   return (
     <div className="mx-auto grid w-full max-w-[1520px] gap-x-8 gap-y-6 px-4 pt-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:pt-2 xl:grid-cols-[minmax(0,1fr)_380px]">
@@ -207,7 +211,7 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
           <span className="tabular min-w-[5.5rem] text-right text-[0.95rem] text-sandal">
             {formatTime(labelTime)} / {formatTime(length)}
           </span>
-          <div className="flex items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5">
             <button
               type="button"
               onClick={togglePlay}
@@ -278,10 +282,10 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
       </div>
 
       {/* ---------- what is playing, and what follows ---------- */}
-      <aside className="flex min-w-0 flex-col gap-5 lg:max-h-[var(--fit-h)]">
+      <aside className={`flex min-w-0 flex-col gap-5 lg:max-h-[var(--fit-h)] ${showLyrics ? "lg:h-[var(--fit-h)]" : ""}`}>
         <div className="flex flex-col gap-2">
           <div className="flex items-start justify-between gap-3">
-            <h1 lang={langOf(clip.title)} className="font-serif text-[clamp(1.75rem,1.3rem+1.4vw,2.4rem)] leading-[1.15] text-ivory [text-wrap:balance]">
+            <h1 lang={langOf(clip.title)} className={`font-serif text-[clamp(1.75rem,1.3rem+1.4vw,2.4rem)] leading-[1.15] text-ivory [text-wrap:balance] ${showLyrics ? "lg:text-[clamp(1.5rem,0.9rem+1vw,2rem)]" : ""}`}>
               {clip.title}
             </h1>
             {!clip.owner && <HeartButton slug={clip.slug} title={clip.title} className="mt-1 size-11 shrink-0 border border-gold/35 hover:border-gold" />}
@@ -315,12 +319,12 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
           </a>
         </div>
 
-        {(upNext.length > 0 || clip.lyrics) && (
+        {(upNext.length > 0 || hasLyrics) && (
           <section
-            className="flex min-h-0 flex-col overflow-hidden rounded-[4px] border-[6px] border-brass bg-shyam shadow-[0_18px_36px_-10px_rgb(0_0_0/0.55)]"
+            className={`flex min-h-0 flex-col overflow-clip rounded-[4px] border-[6px] border-brass bg-shyam shadow-[0_18px_36px_-10px_rgb(0_0_0/0.55)] ${showLyrics && hasSynced ? "lg:min-h-[15rem] lg:flex-1" : ""}`}
             data-may-scroll
           >
-            {clip.lyrics ? (
+            {hasLyrics ? (
               <div role="tablist" aria-label="Beside the player" className="flex gap-1 border-b border-gold/35 px-2 pt-2">
                 {(
                   [
@@ -353,7 +357,17 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
                 <span className="text-[0.85rem] text-mist">{queueLabel}</span>
               </h2>
             )}
-            {showLyrics ? (
+            {showLyrics && hasSynced ? (
+              <div id="side-panel" role="tabpanel" aria-labelledby="tab-lyrics" className="flex h-[24rem] min-h-0 flex-col lg:h-auto lg:flex-1">
+                <SyncedLyrics
+                  lines={synced!}
+                  now={now}
+                  live={mine && open}
+                  onSeek={mine ? (t) => p.seekTo(t) : undefined}
+                  lang={langOf(synced!.map((l) => l.text).join(" "))}
+                />
+              </div>
+            ) : showLyrics ? (
               <div
                 id="side-panel"
                 role="tabpanel"
@@ -367,8 +381,8 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
             ) : (
               <ol
                 id="side-panel"
-                role={clip.lyrics ? "tabpanel" : undefined}
-                aria-labelledby={clip.lyrics ? "tab-next" : undefined}
+                role={hasLyrics ? "tabpanel" : undefined}
+                aria-labelledby={hasLyrics ? "tab-next" : undefined}
                 className="min-h-0 overflow-y-auto px-2 pb-6 pt-1 [mask-image:linear-gradient(to_bottom,black_calc(100%-2.5rem),transparent)]"
               >
                 {upNext.map((c) => (
@@ -401,11 +415,11 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
             Next: <span className="text-ivory">{next.title}</span>. Turn on autoplay to follow on.
           </p>
         )}
-        <p className="hidden text-[0.9rem] text-sandal/80 lg:block">
+        <p className={`hidden text-[0.9rem] text-sandal/80 lg:block ${showLyrics ? "short:hidden" : ""}`}>
           Keys: <kbd className="font-sans">Space</kbd> play/pause · <kbd className="font-sans">←</kbd> <kbd className="font-sans">→</kbd> 5 seconds ·{" "}
           <kbd className="font-sans">N</kbd> next · <kbd className="font-sans">L</kbd> repeat
         </p>
-        <p className="text-[0.9rem] text-sandal/80">
+        <p className={`text-[0.9rem] text-sandal/80 ${showLyrics ? "short:hidden" : ""}`}>
           Tip: to watch in 1080p, choose it once in YouTube&apos;s{" "}
           <Settings className="inline size-[1em] align-[-0.125em]" aria-label="settings" /> menu. YouTube remembers it on
           this device.

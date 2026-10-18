@@ -45,7 +45,11 @@ export default function PrivacyPage() {
 
       <h2 className="mb-1 mt-8 font-serif text-[1.4rem] text-ivory">Removing your data</h2>
       <p className="text-sandal">
-        To have your account, likes, history and videos removed, ask the person who runs this site. Without an account, clear this site&apos;s data in your browser
+        To have your account, likes, history and videos removed, or for any question, write to{" "}
+        <a className="text-ivory underline decoration-gold/50 hover:decoration-gold" href="mailto:thisisharish07@gmail.com">
+          thisisharish07@gmail.com
+        </a>
+        . Without an account, clear this site&apos;s data in your browser
         settings.
       </p>
     </main>

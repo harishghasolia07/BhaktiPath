@@ -50,13 +50,9 @@ would take. Move an item out of this file when it is built.
   the main choice.
 - The small diya (lamp) beside each card's name now only shows above 1700 px wide.
 
-## Suggested at the end of the 2026-10-19 session
+## Still open from the 2026-10-19 session
 
-- Use the stronger duplicate check (`lib/duplicates.ts`: same video within a minute, same name) in the admin editor and the
-  Public-request review, not only in `npm run add-videos`.
-- A "bottom sheet" version of the ⋯ menu on phones (easier with a thumb than the small pop-up).
 - Group playlists under a "Playlists" heading in the library list once there are many.
 - Hide the speed button's "1×" unless the speed was changed (tidier controls).
-- Fill in lyrics for the most-played bhajans (the lyrics panel exists; most clips have none).
-- A contact line on the privacy page.
-- Re-run the long all-screens check (`npm run check:screens`) once; it was stopped before finishing this session.
+- Synced lyrics come from YouTube's automatic captions, so some words are misspelled. A way to correct a clip's lyric
+  lines by hand in the admin page would fix the ones you play most.

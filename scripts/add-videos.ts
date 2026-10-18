@@ -20,6 +20,7 @@ import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "
 import { parseNotes } from "../lib/addnotes";
 import { findDuplicates, type Dupable } from "../lib/duplicates";
 import { evidenceFor, guessEnd, singingResumes, type Heard } from "../lib/evidence";
+import { makeLyrics } from "../lib/make-lyrics";
 import { fetchVideoTitle } from "../lib/oembed";
 import { ClipValidationError, getStore, validateClip } from "../lib/store";
 import { tidyTitle } from "../lib/tidy";
@@ -175,9 +176,15 @@ async function save(file: string) {
   if (stop.length) die(`nothing saved. Fix these first:\n  ${stop.join("\n  ")}`);
 
   console.log(`store: ${store.kind} | before: ${existing.length} clips`);
+  const added = [];
   for (const c of toSave) {
     const made = await store.create({ title: c.title, videoId: c.videoId, start: c.start!, end: c.end!, category: c.category, videoTitle: c.videoTitle });
+    added.push(made);
     console.log(`+ ${`${formatTime(made.start)}–${formatTime(made.end)}`.padEnd(17)} ${made.title}  [${made.slug}]`);
+  }
+  if (added.length) {
+    console.log("synced lyrics from the captions:");
+    await makeLyrics(added, { log: console.log });
   }
   for (const s of skippedDup) console.log(`- skipped ${s}`);
   console.log(`after: ${(await store.list()).length} clips (${toSave.length} added, ${skippedDup.length} skipped as duplicates)`);

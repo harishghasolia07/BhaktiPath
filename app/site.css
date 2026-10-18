@@ -205,3 +205,15 @@ textarea {
     cursor: not-allowed;
   }
 }
+
+/* the "⋯" menu as a sheet on phones */
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}

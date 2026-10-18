@@ -54,10 +54,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               <Link href="/" className="group flex shrink-0 items-center gap-2 no-underline sm:gap-3" aria-label="Shravanam Kirtanam, home">
                 <Feather className="h-8 w-5 shrink-0 max-[339px]:hidden sm:h-9 sm:w-6 transition-transform duration-500 ease-out group-hover:-rotate-12" />
                 <span className="flex items-baseline gap-3">
-                  <span lang="hi" className="whitespace-nowrap font-display text-[1.45rem] leading-none text-gold max-[359px]:text-[1.2rem] sm:text-[2rem]">
+                  <span lang="hi" className="whitespace-nowrap font-display text-[1.45rem] leading-none text-gold max-[399px]:text-[1.25rem] max-[359px]:text-[1.15rem] sm:text-[2rem]">
                     श्रवणं कीर्तनं
                   </span>
-                  <span className="hidden text-[0.8125rem] font-medium uppercase tracking-[0.16em] text-sandal sm:inline">
+                  <span className="hidden text-[0.8125rem] font-medium uppercase tracking-[0.16em] text-sandal lg:inline">
                     Shravanam Kirtanam
                   </span>
                 </span>
