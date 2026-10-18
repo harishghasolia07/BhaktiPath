@@ -5,7 +5,7 @@ import { getAccounts } from "@/lib/accounts";
 import { parseTags, type Category } from "@/lib/clip-schema";
 import { fetchVideoLength, fetchVideoTitle } from "@/lib/oembed";
 import { ClipValidationError } from "@/lib/store";
-import { currentUser } from "@/lib/user-session";
+import { currentUser, endUserSession } from "@/lib/user-session";
 import { parseTime, parseVideoId } from "@/lib/youtube";
 
 export type MyState = { error?: string; fields?: Record<string, string> } | undefined;
@@ -80,6 +80,14 @@ export async function saveMyVideo(_: MyState, form: FormData): Promise<MyState> 
     return { error: (err as Error).message };
   }
   redirect(`/my/${id}`);
+}
+
+/** Delete the signed-in person's account and everything they kept. */
+export async function deleteAccount() {
+  const user = await requireUser();
+  await getAccounts().deleteUser(user.id);
+  await endUserSession();
+  redirect("/?deleted=1");
 }
 
 export async function deleteMyVideo(form: FormData) {

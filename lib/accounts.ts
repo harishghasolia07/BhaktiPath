@@ -58,6 +58,10 @@ export interface AccountStore {
   createVideo(userId: string, input: ClipInput): Promise<Clip>;
   updateVideo(userId: string, id: string, input: ClipInput): Promise<Clip>;
   removeVideo(userId: string, id: string): Promise<boolean>;
+  /** Removes the person and everything they kept (videos, likes, history). */
+  deleteUser(userId: string): Promise<void>;
+  /** For the admin backup: people (no passwords) and their videos. */
+  exportAll(): Promise<{ users: User[]; videos: Clip[] }>;
 }
 
 /** Likes and play history use "my-<id>" for a person's own videos and the clip slug for the public ones. */
@@ -259,6 +263,17 @@ function mongoAccounts(db: Db): AccountStore {
       if (!d) throw new Error("Video not found.");
       return videoOf(d);
     },
+    async deleteUser(userId) {
+      const _id = oid(userId);
+      if (!_id) return;
+      await videos.deleteMany({ ownerId: userId });
+      await users.deleteOne({ _id });
+    },
+    async exportAll() {
+      await init();
+      const [u, v] = await Promise.all([users.find({}).toArray(), videos.find({}).toArray()]);
+      return { users: u.map(userOf), videos: v.map(videoOf) };
+    },
     async removeVideo(userId, id) {
       const _id = oid(id);
       if (!_id) return false;
@@ -398,6 +413,13 @@ function fileAccounts(): AccountStore {
       await write(videosFile, all);
       return toClip(all[i]);
     },
+    async deleteUser(userId) {
+      await write(videosFile, (await read<VideoRow>(videosFile)).filter((r) => r.ownerId !== userId));
+      await write(usersFile, (await read<UserRow>(usersFile)).filter((u) => u.id !== userId));
+    },
+    async exportAll() {
+      return { users: (await read<UserRow>(usersFile)).map(strip), videos: (await read<VideoRow>(videosFile)).map(toClip) };
+    },
     async removeVideo(userId, id) {
       const all = await read<VideoRow>(videosFile);
       const left = all.filter((x) => !(x.id === id && x.ownerId === userId));
@@ -450,5 +472,7 @@ export function getAccounts(): AccountStore {
     createVideo: lazy("createVideo"),
     updateVideo: lazy("updateVideo"),
     removeVideo: lazy("removeVideo"),
+    deleteUser: lazy("deleteUser"),
+    exportAll: lazy("exportAll"),
   };
 }

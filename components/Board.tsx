@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Heart, Search, X } from "lucide-react";
 import { CATEGORIES, CATEGORY_LABELS, type Category, type Clip } from "@/lib/clip-schema";
 import { clipHref, groupByVideo, langOf } from "@/lib/display";
-import { requestAutoplay, useFavs, usePlayed } from "@/lib/local";
+import { requestAutoplay, useFavs, useIsNew, usePlayed } from "@/lib/local";
 import { matchesQuery } from "@/lib/translit";
 import { formatLength, formatTime } from "@/lib/youtube";
 import { HeartButton } from "./HeartButton";
@@ -18,6 +18,7 @@ export function Board({ clips }: { clips: Clip[] }) {
   const [filter, setFilter] = useState<Filter>("all");
   const [q, setQ] = useState("");
   const played = usePlayed();
+  const isNew = useIsNew();
   const [favs] = useFavs();
   const panelId = useId();
 
@@ -59,24 +60,24 @@ export function Board({ clips }: { clips: Clip[] }) {
   return (
     <section
       aria-labelledby="board-title"
-      className="rounded-[5px] bg-[linear-gradient(160deg,#f2cf72,#b8862b_45%,#6e4a10)] p-[7px] shadow-[0_24px_48px_-14px_rgb(0_0_0/0.65)] lg:flex lg:h-[var(--fit-h)] lg:flex-col"
+      className="flex min-h-0 w-full flex-1 flex-col rounded-[5px] bg-[linear-gradient(160deg,#f2cf72,#b8862b_45%,#6e4a10)] p-[7px] shadow-[0_24px_48px_-14px_rgb(0_0_0/0.65)] lg:h-[var(--fit-h)] lg:flex-none"
       data-may-scroll
     >
-      <div className="rounded-[2px] bg-shyam shadow-[inset_0_0_0_1px_rgb(0_0_0/0.35)] lg:flex lg:min-h-0 lg:flex-1 lg:flex-col">
-      <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-1 border-b-2 border-gold/40 px-4 pb-3 pt-4 sm:px-5">
+      <div className="flex min-h-0 flex-1 flex-col rounded-[2px] bg-shyam shadow-[inset_0_0_0_1px_rgb(0_0_0/0.35)]">
+      <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-1 border-b-2 border-gold/40 px-4 pb-2 pt-3 sm:px-5 sm:pb-3 sm:pt-4 max-lg:[body:has([data-mini])_&]:hidden">
         <h2 id="board-title" className="flex items-baseline gap-3 leading-none">
           <span lang="hi" className="font-display text-[1.9rem] text-gold">
             दर्शन समय
           </span>
           <span className="text-[0.95rem] text-sandal">Darshan timings</span>
         </h2>
-        <p className="text-[0.85rem] uppercase tracking-[0.14em] text-mist">
+        <p className="text-[0.85rem] uppercase tracking-[0.14em] text-mist max-sm:hidden">
           {clips.length} {clips.length === 1 ? "clip" : "clips"} · times in the katha
         </p>
       </div>
 
-      <div className="flex flex-col gap-3 px-4 pb-1 pt-4 sm:px-5">
-        <div role="tablist" aria-label="Sections" className="flex flex-wrap gap-1.5 sm:gap-2">
+      <div className="flex flex-col gap-3 px-3 pb-1 pt-3 min-[400px]:px-4 sm:px-5 sm:pt-4">
+        <div role="tablist" aria-label="Sections" className="flex flex-wrap gap-1 min-[400px]:gap-1.5 sm:gap-2">
           {FILTERS.map((f) => {
             const on = f === filter;
             const label = f === "all" ? { en: "All" } : f === "fav" ? { en: "My bhajans" } : CATEGORY_LABELS[f];
@@ -88,7 +89,7 @@ export function Board({ clips }: { clips: Clip[] }) {
                 aria-selected={on}
                 aria-controls={panelId}
                 onClick={() => setFilter(f)}
-                className="flex min-h-11 items-center gap-1.5 rounded-full border border-gold/45 px-3.5 text-[0.95rem] sm:gap-2 sm:px-4 sm:text-[0.98rem] font-semibold text-sandal transition-colors hover:border-gold hover:text-ivory aria-selected:border-gold aria-selected:bg-gold aria-selected:text-shyam"
+                className="flex min-h-11 items-center gap-1.5 rounded-full border border-gold/45 px-2 text-[0.9rem] min-[400px]:px-3.5 min-[400px]:text-[0.95rem] sm:gap-2 sm:px-4 sm:text-[0.98rem] font-semibold text-sandal transition-colors hover:border-gold hover:text-ivory aria-selected:border-gold aria-selected:bg-gold aria-selected:text-shyam"
               >
                 {f === "fav" ? (
                   <>
@@ -131,7 +132,7 @@ export function Board({ clips }: { clips: Clip[] }) {
         role="tabpanel"
         tabIndex={0}
         aria-label="Clips"
-        className="px-2 pb-3 sm:px-3 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain lg:[scrollbar-gutter:stable]"
+        className="min-h-[12rem] flex-1 overflow-y-auto overscroll-contain px-2 pb-3 sm:px-3 lg:min-h-0 lg:[scrollbar-gutter:stable]"
       >
         {groups.length === 0 ? (
           <p className="px-3 py-8 text-center text-mist">
@@ -173,6 +174,9 @@ export function Board({ clips }: { clips: Clip[] }) {
                               {CATEGORY_LABELS[c.category].en}
                               {c.sample ? " · sample" : ""}
                             </span>
+                          )}
+                          {!lit && !c.owner && isNew(c.createdAt) && (
+                            <span className="ml-2 rounded-md bg-marigold px-1.5 py-0.5 align-middle text-[0.68rem] font-bold uppercase leading-none tracking-wider text-velvet-deep">New</span>
                           )}
                         </span>
                         <span className="tabular hidden text-[0.9rem] text-mist sm:block">{formatLength(c.end - c.start)}</span>

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { CATEGORY_LABELS, type Clip } from "@/lib/clip-schema";
 import { clipHref, langOf } from "@/lib/display";
-import { requestAutoplay } from "@/lib/local";
+import { requestAutoplay, useIsNew } from "@/lib/local";
 import { formatLength, formatTime, thumbnailUrl } from "@/lib/youtube";
 import { HeartButton } from "./HeartButton";
 
@@ -12,6 +12,7 @@ import { HeartButton } from "./HeartButton";
  * name and details underneath, no box. On phones it is a compact row (picture left, text right).
  */
 export function ClipCard({ clip, lit }: { clip: Clip; lit: boolean }) {
+  const fresh = useIsNew()(clip.createdAt) && !lit && !clip.owner;
   return (
     <div className="group/card relative w-full">
       <Link
@@ -23,7 +24,7 @@ export function ClipCard({ clip, lit }: { clip: Clip; lit: boolean }) {
         <span className="relative block aspect-video w-full overflow-hidden rounded-[12px] border border-gold/25 bg-[radial-gradient(80%_80%_at_50%_40%,#5c0d1a,#2c040b)] transition-colors group-hover:border-marigold max-sm:w-[clamp(6.5rem,32vw,9.5rem)] max-sm:shrink-0 max-sm:self-start max-sm:rounded-[10px]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={thumbnailUrl(clip.videoId, "mq")}
+            src={thumbnailUrl(clip.videoId, "hq")}
             alt=""
             loading="lazy"
             className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
@@ -31,6 +32,9 @@ export function ClipCard({ clip, lit }: { clip: Clip; lit: boolean }) {
           <span className="tabular absolute bottom-2 right-2 rounded-md bg-black/80 px-1.5 py-0.5 text-[0.8rem] font-semibold text-ivory max-sm:hidden">
             {formatTime(clip.start)} – {formatTime(clip.end)}
           </span>
+          {fresh && (
+            <span className="absolute left-2 top-2 rounded-md bg-marigold px-1.5 py-0.5 text-[0.7rem] font-bold uppercase leading-none tracking-wider text-velvet-deep max-sm:left-1 max-sm:top-1">New</span>
+          )}
           {lit && (
             <span className="absolute inset-x-0 bottom-0 h-1 bg-marigold max-sm:hidden" aria-hidden="true" />
           )}

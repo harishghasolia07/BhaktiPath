@@ -12,7 +12,8 @@
     "clip": "tsx scripts/clip.ts",
     "check:screens": "node scripts/check-screens.mjs --base http://localhost:3100",
     "find": "tsx scripts/find-bhajans.ts",
-    "check:fit": "node scripts/check-fit.mjs"
+    "check:fit": "node scripts/check-fit.mjs",
+    "check:phone": "node scripts/check-phone-shell.mjs"
   },
   "dependencies": {
     "@vercel/functions": "^3.9.11",

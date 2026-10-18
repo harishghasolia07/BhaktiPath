@@ -1,11 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Clock, Heart, Play, Search, X } from "lucide-react";
+import { Clock, Heart, Play, Search, Shuffle, X } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { CATEGORIES, CATEGORY_LABELS, type Category, type Clip } from "@/lib/clip-schema";
 import { dayRange, groupByKatha, kathaOf, type Katha } from "@/lib/katha";
+import { useAccount } from "@/lib/account-client";
 import { requestAutoplay, useFavs, usePlayed, useRecent } from "@/lib/local";
+import { shuffled } from "@/lib/shuffle";
 import { matchesQuery } from "@/lib/translit";
 import { thumbnailUrl } from "@/lib/youtube";
 import { ClipCard } from "./ClipCard";
@@ -16,6 +19,7 @@ const chip =
   "flex min-h-10 shrink-0 items-center gap-1.5 rounded-full border border-gold/40 px-3.5 text-[0.92rem] font-semibold text-sandal transition-colors hover:border-gold hover:text-ivory aria-pressed:border-gold aria-pressed:bg-gold aria-pressed:text-shyam aria-selected:border-gold aria-selected:bg-gold aria-selected:text-shyam";
 
 export function KathaLibrary({ clips }: { clips: Clip[] }) {
+  const router = useRouter();
   const kathas = useMemo(() => groupByKatha(clips), [clips]);
   const [k, setK] = useState<string>("all");
   const [day, setDay] = useState<number | null>(null);
@@ -24,6 +28,7 @@ export function KathaLibrary({ clips }: { clips: Clip[] }) {
   const played = usePlayed();
   const [favs] = useFavs();
   const recent = useRecent();
+  const acct = useAccount();
 
   // Filters live in the address bar, so a filtered view can be shared.
   useEffect(() => {
@@ -52,7 +57,8 @@ export function KathaLibrary({ clips }: { clips: Clip[] }) {
   const mine = k === "fav" || k === "recent";
 
   const shown = (() => {
-    const bySlug = new Map(clips.map((c) => [c.slug, c]));
+    // your own (private) videos can show up in "Recently played" too
+    const bySlug = new Map([...clips, ...acct.videos].map((c) => [c.slug, c]));
     const pool =
       k === "fav"
         ? [...favs].map((s) => bySlug.get(s))
@@ -71,12 +77,21 @@ export function KathaLibrary({ clips }: { clips: Clip[] }) {
   })();
 
   /** "Play all": the first clip in view, and the rest of the view queued behind it. */
-  const playAllHref = shown.length
-    ? `/clip/${shown[0].c.slug}?play=1&slugs=${shown
+  const publicShown = shown.filter(({ c }) => !c.owner); // private videos play from My videos
+  const playAllHref = publicShown.length
+    ? `/clip/${publicShown[0].c.slug}?play=1&slugs=${publicShown
         .slice(0, 80)
         .map(({ c }) => c.slug)
         .join(",")}`
     : null;
+
+  /** "Shuffle": the same view in a random order. */
+  function shuffleAll() {
+    if (!publicShown.length) return;
+    const order = shuffled(publicShown.slice(0, 80).map(({ c }) => c));
+    requestAutoplay(order[0].slug);
+    router.push(`/clip/${order[0].slug}?play=1&slugs=${order.map((c) => c.slug).join(",")}`);
+  }
 
   const pickKatha = (key: string) => {
     setK(key);
@@ -84,17 +99,17 @@ export function KathaLibrary({ clips }: { clips: Clip[] }) {
   };
 
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:h-[var(--fit-h)] lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[340px_minmax(0,1fr)]">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-6 max-lg:flex max-lg:min-h-0 max-lg:flex-1 max-lg:flex-col max-lg:gap-3 lg:h-[var(--fit-h)] lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[340px_minmax(0,1fr)]">
       {/* ---------- the kathas ---------- */}
-      <nav aria-label="Kathas" className="rounded-[5px] bg-[linear-gradient(160deg,#f2cf72,#b8862b_45%,#6e4a10)] p-[6px] shadow-[0_24px_48px_-14px_rgb(0_0_0/0.65)] lg:flex lg:min-h-0 lg:flex-col">
+      <nav aria-label="Kathas" className="max-lg:[body:has([data-mini])_&]:hidden rounded-[5px] bg-[linear-gradient(160deg,#f2cf72,#b8862b_45%,#6e4a10)] p-[6px] shadow-[0_24px_48px_-14px_rgb(0_0_0/0.65)] lg:flex lg:min-h-0 lg:flex-col">
         <div className="rounded-[2px] bg-shyam lg:flex lg:min-h-0 lg:flex-1 lg:flex-col">
-          <h1 className="flex items-baseline gap-3 border-b-2 border-gold/40 px-4 pb-3 pt-4">
+          <h1 className="flex items-baseline gap-3 border-b-2 border-gold/40 px-4 pb-2 pt-2.5 lg:pb-3 lg:pt-4">
             <span lang="hi" className="font-display text-[1.75rem] leading-none text-gold">
               कथा संग्रह
             </span>
             <span className="text-[0.95rem] text-sandal">Every katha</span>
           </h1>
-          <ul className="flex gap-2 overflow-x-auto p-3 lg:min-h-0 lg:flex-1 lg:flex-col lg:overflow-y-auto lg:overscroll-contain">
+          <ul className="flex gap-2 overflow-x-auto p-2 lg:p-3 lg:min-h-0 lg:flex-1 lg:flex-col lg:overflow-y-auto lg:overscroll-contain">
             <li className="shrink-0">
               <KathaButton
                 active={k === "all"}
@@ -138,8 +153,8 @@ export function KathaLibrary({ clips }: { clips: Clip[] }) {
       </nav>
 
       {/* ---------- its clips ---------- */}
-      <section aria-labelledby="lib-title" className="flex min-w-0 flex-col gap-4 lg:min-h-0">
-        <div className="flex flex-col gap-3">
+      <section aria-labelledby="lib-title" className="flex min-w-0 flex-col gap-4 max-lg:min-h-0 max-lg:flex-1 max-lg:gap-2 lg:min-h-0">
+        <div className="flex flex-col gap-3 max-lg:gap-2">
           <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
             <h2 id="lib-title" className="font-serif text-[clamp(1.6rem,1.3rem+1vw,2.2rem)] leading-tight text-ivory">
               {k === "fav" ? "My bhajans" : k === "recent" ? "Recently played" : current ? current.label : "All kathas"}
@@ -163,8 +178,8 @@ export function KathaLibrary({ clips }: { clips: Clip[] }) {
             </div>
           )}
 
-          <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
-            <div className="flex gap-1.5 overflow-x-auto" role="tablist" aria-label="Sections">
+          <div className="flex flex-wrap gap-2 sm:flex-nowrap sm:items-center">
+            <div className="flex w-full gap-1.5 overflow-x-auto sm:w-auto" role="tablist" aria-label="Sections">
               {(["all", ...CATEGORIES] as Section[]).map((s) => (
                 <button
                   key={s}
@@ -181,21 +196,32 @@ export function KathaLibrary({ clips }: { clips: Clip[] }) {
             {playAllHref && (
               <Link
                 href={playAllHref}
-                onClick={() => requestAutoplay(shown[0].c.slug)}
+                onClick={() => requestAutoplay(publicShown[0].c.slug)}
                 className="flex min-h-10 shrink-0 items-center gap-2 rounded-full bg-marigold px-4 font-semibold text-velvet-deep no-underline hover:bg-[#ffb32e]"
               >
                 <Play className="size-4 fill-current" aria-hidden="true" />
-                Play all {shown.length}
+                Play all {publicShown.length}
               </Link>
             )}
-            <label className="relative block flex-1 sm:max-w-sm">
+            {publicShown.length > 1 && (
+              <button
+                type="button"
+                onClick={shuffleAll}
+                aria-label="Shuffle and play these"
+                title="Shuffle"
+                className="grid size-10 shrink-0 place-items-center rounded-full border border-gold/50 text-sandal hover:border-gold hover:text-ivory"
+              >
+                <Shuffle className="size-[18px]" aria-hidden="true" />
+              </button>
+            )}
+            <label className="relative block min-w-0 flex-1 sm:max-w-sm">
               <span className="sr-only">Search bhajans</span>
               <Search className="pointer-events-none absolute left-3.5 top-1/2 size-[18px] -translate-y-1/2 text-mist" aria-hidden="true" />
               <input
                 type="search"
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="Search by bhajan name"
+                placeholder="Search bhajans"
                 className="h-10 w-full rounded-full border border-gold/30 bg-shyam pl-10 pr-10 text-ivory placeholder:text-mist/80 focus:border-marigold focus:shadow-[0_0_0_1px_var(--color-marigold)] focus:outline-none focus-visible:outline-none [&::-webkit-search-cancel-button]:hidden"
               />
               {q && (
@@ -212,7 +238,7 @@ export function KathaLibrary({ clips }: { clips: Clip[] }) {
           </div>
         </div>
 
-        <div className="lg:-mr-2 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain lg:pr-2" data-may-scroll>
+        <div className="min-h-[12rem] flex-1 overflow-y-auto overscroll-contain lg:-mr-2 lg:min-h-0 lg:pr-2" data-may-scroll>
           {shown.length === 0 ? (
             <p className="rounded-[4px] border border-gold/25 px-4 py-10 text-center text-sandal">
               {clips.length === 0
@@ -260,20 +286,20 @@ function KathaButton({
       type="button"
       aria-pressed={active}
       onClick={onClick}
-      className="flex w-[15.5rem] items-center gap-3 rounded-[4px] border border-transparent p-2 text-left transition-colors hover:bg-shyam-lit aria-pressed:border-gold/70 aria-pressed:bg-shyam-lit lg:w-full"
+      className="flex w-[15.5rem] items-center gap-3 rounded-[4px] border border-transparent p-2 text-left transition-colors hover:bg-shyam-lit aria-pressed:border-gold/70 aria-pressed:bg-shyam-lit max-lg:w-auto max-lg:max-w-[13rem] max-lg:gap-2 max-lg:rounded-full max-lg:border-gold/30 max-lg:py-1 max-lg:pr-3 lg:w-full"
     >
       {videoId ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={thumbnailUrl(videoId, "mq")} alt="" loading="lazy" className="aspect-video w-[4.5rem] shrink-0 rounded-[3px] object-cover" />
+        <img src={thumbnailUrl(videoId, "mq")} alt="" loading="lazy" className="aspect-video w-[4.5rem] shrink-0 rounded-[3px] object-cover max-lg:w-9 max-lg:rounded-full max-lg:aspect-square" />
       ) : (
-        <span className="grid aspect-video w-[4.5rem] shrink-0 place-items-center rounded-[3px] bg-velvet font-display text-[1.3rem] text-gold" lang="hi">
+        <span className="grid aspect-video w-[4.5rem] shrink-0 place-items-center rounded-[3px] bg-velvet font-display text-[1.3rem] text-gold max-lg:w-9 max-lg:rounded-full max-lg:aspect-square max-lg:text-[1rem]" lang="hi">
           {icon ?? "सब"}
         </span>
       )}
       <span className="min-w-0">
         <span className="block truncate font-semibold text-ivory">{title}</span>
-        <span className="block truncate text-[0.85rem] text-sandal">{sub}</span>
-        {meta && <span className="block truncate text-[0.8rem] text-mist">{meta}</span>}
+        <span className="block truncate text-[0.85rem] text-sandal max-lg:hidden">{sub}</span>
+        {meta && <span className="block truncate text-[0.8rem] text-mist max-lg:hidden">{meta}</span>}
       </span>
     </button>
   );

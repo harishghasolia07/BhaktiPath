@@ -61,6 +61,14 @@ async function Admin({ searchParams }: { searchParams: PageProps<"/admin">["sear
           >
             Download backup
           </a>
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- a file download, not a page */}
+          <a
+            href="/admin/backup/accounts"
+            download
+            className="inline-flex h-11 items-center gap-2 rounded-full border border-gold/50 px-4 text-ivory no-underline hover:border-gold"
+          >
+            Accounts backup
+          </a>
           <form action={logout}>
             <button className="inline-flex h-11 items-center gap-2 rounded-full border border-gold/40 px-4 text-sandal hover:border-gold hover:text-ivory">
               <LogOut className="size-[18px]" aria-hidden="true" /> Sign out

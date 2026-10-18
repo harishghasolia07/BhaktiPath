@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 export default async function KathasPage() {
   const clips = await getClips();
   return (
-    <main className="mx-auto w-full max-w-[1520px] px-4 pt-4 sm:px-6 lg:pt-3">
+    <main data-shell className="mx-auto w-full max-w-[1520px] px-4 pt-4 sm:px-6 lg:pt-3 max-lg:flex max-lg:min-h-0 max-lg:flex-1 max-lg:flex-col max-lg:pb-3 max-lg:pt-3">
       <KathaLibrary clips={clips} />
     </main>
   );

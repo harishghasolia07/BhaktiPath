@@ -5,6 +5,7 @@ import { Pencil } from "lucide-react";
 import { ClipCard } from "@/components/ClipCard";
 import { AuthForms } from "@/components/my/AuthForms";
 import { ResendVerification } from "@/components/my/ResendVerification";
+import { DeleteAccountButton } from "@/components/my/DeleteAccountButton";
 import { SyncAccount } from "@/components/my/SyncAccount";
 import { MyVideoForm } from "@/components/my/MyVideoForm";
 import { getAccounts } from "@/lib/accounts";
@@ -109,6 +110,9 @@ async function Body({ search }: { search: PageProps<"/my">["searchParams"] }) {
             Add a YouTube video
           </h2>
           <MyVideoForm />
+          <div className="mt-6 border-t border-gold/20 pt-4">
+            <DeleteAccountButton />
+          </div>
         </section>
       </div>
     </div>

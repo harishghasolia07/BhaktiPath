@@ -38,7 +38,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en" className={`${yatra.variable} ${tiro.variable} ${mukta.variable}`}>
       {/* Laptops and up: the site is exactly one screen tall; only lists scroll, inside themselves. */}
-      <body className="flex min-h-svh flex-col antialiased lg:h-svh lg:overflow-hidden">
+      {/* Phones and tablets: Home and Katha Sangraha (marked data-shell) are exactly one screen tall and only
+          their list scrolls; #content keeps its own scroll as a last resort on very small or landscape screens. */}
+      <body className="flex min-h-svh flex-col antialiased max-lg:has-[[data-shell]]:h-dvh max-lg:has-[[data-shell]]:overflow-hidden lg:h-svh lg:overflow-hidden">
         <PlayerProvider>
           <a
             href="#content"
@@ -66,13 +68,20 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
 
           {/* Laptops: the stage between header and footer is a size container; must-fit things
               (shrine, board) size against it, leaving a 2rem gap above the footer. */}
-          <div id="content" className="flex-1 lg:min-h-0 lg:overflow-y-auto lg:[container-type:size] lg:[--fit-h:calc(100cqh-2.75rem)]">
+          <div id="content" className="flex-1 max-lg:has-[[data-shell]]:flex max-lg:has-[[data-shell]]:min-h-0 max-lg:has-[[data-shell]]:flex-col max-lg:has-[[data-shell]]:overflow-y-auto max-lg:has-[[data-shell]]:overscroll-contain lg:min-h-0 lg:overflow-y-auto lg:[container-type:size] lg:[--fit-h:calc(100cqh-2.75rem)]">
             {children}
           </div>
 
-          <footer className="mt-group shrink-0 border-t border-gold/20 lg:mt-0">
-            <div className="mx-auto flex max-w-[1520px] flex-col gap-3 px-4 py-8 text-[0.95rem] text-sandal sm:px-6 md:flex-row md:items-end md:justify-between lg:items-center lg:gap-6 lg:py-3 lg:text-[0.9rem]">
-              <p className="max-w-[60ch] xl:max-w-none">
+          <footer className="mt-group shrink-0 border-t border-gold/20 lg:mt-0 max-lg:[body:has([data-shell])_&]:mt-0 max-lg:[body:has([data-shell]):has([data-mini])_&]:hidden">
+            <div className="mx-auto flex max-w-[1520px] flex-col gap-1 px-4 py-2.5 text-[0.8rem] leading-snug text-sandal sm:gap-3 sm:px-6 sm:py-8 sm:text-[0.95rem] md:flex-row md:items-end md:justify-between lg:items-center lg:gap-6 lg:py-3 lg:text-[0.9rem]">
+              <p className="sm:hidden">
+                Katha by <strong className="font-semibold text-gold">Pujya Shri Indresh Upadhyay Ji Maharaj</strong>, from the{" "}
+                <a className="text-ivory underline decoration-gold/50" href="https://www.youtube.com/@BhaktiPath" target="_blank" rel="noopener noreferrer">
+                  BhaktiPath channel
+                </a>
+                . Unofficial fan collection. <Link href="/privacy" className="underline decoration-gold/50">Privacy</Link>
+              </p>
+              <p className="max-w-[60ch] max-sm:hidden xl:max-w-none">
                 Katha by <strong className="font-semibold text-gold">Pujya Shri Indresh Upadhyay Ji Maharaj</strong>. Every
                 video plays from the official{" "}
                 <a
@@ -83,9 +92,12 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                 >
                   BhaktiPath YouTube channel
                 </a>
-                . This is an unofficial fan collection.
+                . This is an unofficial fan collection.{" "}
+                <Link href="/privacy" className="text-ivory underline decoration-gold/50 hover:decoration-gold">
+                  Privacy
+                </Link>
               </p>
-              <p lang="hi" className="shrink-0 font-serif text-[1.05rem] text-sandal/90">
+              <p lang="hi" className="shrink-0 font-serif text-[1.05rem] text-sandal/90 max-sm:hidden">
                 श्रवणं कीर्तनं विष्णोः स्मरणं पादसेवनम्
                 <span lang="en" className="ml-2 text-sandal/70">
                   Bhagavatam 7.5.23

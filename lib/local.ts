@@ -2,6 +2,7 @@
 // Per-device memory: which bhajans were heard here (lights their diya) and
 // the player toggles. Everything is wrapped so private windows still work.
 import { useCallback, useSyncExternalStore } from "react";
+import { isNewClip, type Resume } from "./resume";
 import { accountMarkPlayed, accountToggleFav, getAccount, useAccount } from "./account-client";
 
 const PLAYED = "sk:played";
@@ -68,6 +69,73 @@ export function useFavs(): [Set<string>, (slug: string) => void] {
     write(FAVS, (cur.includes(slug) ? cur.filter((x) => x !== slug) : [slug, ...cur]).join(","));
   }, []);
   return [new Set(acct.status === "in" ? acct.favs : list(raw)), toggle];
+}
+
+/* ---- continue where I left off (this device) ---- */
+const RESUME = "sk:resume";
+
+/** Remember how far into a clip we are. Quiet: no event, it runs every few seconds while playing. */
+export function saveResume(slug: string, t: number) {
+  try {
+    localStorage.setItem(RESUME, JSON.stringify({ slug, t: Math.floor(t), at: Date.now() } satisfies Resume));
+  } catch {}
+}
+export function clearResume(slug: string) {
+  try {
+    const r = JSON.parse(localStorage.getItem(RESUME) ?? "null") as Resume | null;
+    if (r?.slug === slug) localStorage.removeItem(RESUME);
+  } catch {}
+}
+export function useResume(): Resume | null {
+  const raw = useSyncExternalStore(subscribe, () => read(RESUME), () => null);
+  try {
+    return raw ? (JSON.parse(raw) as Resume) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** A "Continue" tap asks the next player start of this clip to begin at that second (valid for 20 seconds). */
+export function requestResumeAt(slug: string, t: number) {
+  try {
+    sessionStorage.setItem("sk:resumeAt", JSON.stringify({ slug, t, at: Date.now() }));
+  } catch {}
+}
+export function peekResumeAt(slug: string): number | null {
+  try {
+    const r = JSON.parse(sessionStorage.getItem("sk:resumeAt") ?? "null") as Resume | null;
+    return r && r.slug === slug && Date.now() - r.at < 20_000 ? r.t : null;
+  } catch {
+    return null;
+  }
+}
+export function clearResumeAt() {
+  try {
+    sessionStorage.removeItem("sk:resumeAt");
+  } catch {}
+}
+
+/* ---- "New": clips added since this device's previous visit ---- */
+let newSince: number | null = null;
+function previousVisit(): number {
+  if (newSince !== null) return newSince;
+  try {
+    const kept = sessionStorage.getItem("sk:newSince");
+    if (kept !== null) newSince = Number(kept);
+    else {
+      newSince = Number(localStorage.getItem("sk:lastVisit") ?? 0) || 0;
+      sessionStorage.setItem("sk:newSince", String(newSince));
+      localStorage.setItem("sk:lastVisit", String(Date.now()));
+    }
+  } catch {
+    newSince = 0;
+  }
+  return newSince;
+}
+/** Returns a function telling whether a clip is new to this visitor (nothing is new on a first visit). */
+export function useIsNew(): (createdAt: string) => boolean {
+  const since = useSyncExternalStore(() => () => {}, previousVisit, () => 0);
+  return (createdAt) => isNewClip(createdAt, since);
 }
 
 export function usePref(key: "loop" | "autonext", fallback: boolean): [boolean, (v: boolean) => void] {

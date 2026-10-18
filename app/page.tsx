@@ -2,8 +2,10 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { connection } from "next/server";
 import { Board } from "@/components/Board";
+import { ContinueCard } from "@/components/ContinueCard";
 import { Shrine, shrineMaxWidth } from "@/components/Shrine";
 import { ShrineLink } from "@/components/ShrineLink";
+import { TodayStrip } from "@/components/TodayStrip";
 import { getClips } from "@/lib/clips";
 import type { Clip } from "@/lib/clip-schema";
 import { langOf, libraryHref, sourceLabel } from "@/lib/display";
@@ -49,14 +51,20 @@ async function Featured({ clips }: { clips: Clip[] }) {
   );
 }
 
+/** Phones: today's bhajan as a small strip. */
+async function Today({ clips }: { clips: Clip[] }) {
+  await connection(); // the date, as in Featured
+  return <TodayStrip clip={bhajanOfTheDay(clips) ?? clips[0]} />;
+}
+
 export default async function Home() {
   const clips = await getClips();
 
   return (
-    <main className="mx-auto grid w-full max-w-[1520px] grid-cols-[minmax(0,1fr)] items-start gap-x-8 gap-y-8 px-4 pt-4 sm:px-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:pt-3">
+    <main data-shell className="mx-auto grid w-full max-w-[1520px] grid-cols-[minmax(0,1fr)] items-start gap-x-8 gap-y-8 px-4 pt-4 sm:px-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:pt-3 max-lg:flex max-lg:min-h-0 max-lg:flex-1 max-lg:flex-col max-lg:gap-3 max-lg:pb-3 max-lg:pt-3">
       <h1 className="sr-only">Shravanam Kirtanam: bhajans, kirtans and katha from the Shrimad Bhagwat Katha</h1>
       {clips.length ? (
-        <div className="flex min-w-0 flex-col items-center gap-3 lg:sticky lg:top-4">
+        <div className="min-w-0 flex-col items-center gap-3 max-lg:hidden lg:sticky lg:top-4 lg:flex">
           <Suspense
             fallback={
               <div className="w-full" style={{ maxWidth: shrineMaxWidth("9.5rem") }}>
@@ -66,10 +74,21 @@ export default async function Home() {
           >
             <Featured clips={clips} />
           </Suspense>
+          <ContinueCard clips={clips} />
         </div>
       ) : (
-        <div className="rounded-[4px] border border-gold/30 p-8 text-center text-sandal">
+        <div className="rounded-[4px] border border-gold/30 p-8 text-center text-sandal max-lg:shrink-0">
           The first bhajan will appear here once it is added.
+        </div>
+      )}
+      {clips.length > 0 && (
+        <div className="lg:hidden max-lg:[body:has([data-mini])_&]:hidden">
+          <Suspense fallback={<div className="h-[4.75rem] rounded-[10px] border border-gold/20 bg-shyam/40" />}>
+            <Today clips={clips} />
+          </Suspense>
+          <div className="mt-2 flex justify-center empty:hidden">
+            <ContinueCard clips={clips} />
+          </div>
         </div>
       )}
       <Board clips={clips} />

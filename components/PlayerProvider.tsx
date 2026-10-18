@@ -10,7 +10,7 @@ import Link from "next/link";
 import { Pause, Play, SkipForward, X } from "lucide-react";
 import type { Clip } from "@/lib/clip-schema";
 import { clipHref, langOf } from "@/lib/display";
-import { markPlayed, usePref } from "@/lib/local";
+import { clearResume, clearResumeAt, markPlayed, peekResumeAt, saveResume, usePref } from "@/lib/local";
 import { formatTime, PLAYER_ERRORS } from "@/lib/youtube";
 import { loadYouTubeApi, STATE, type YTPlayer } from "@/lib/yt-player";
 
@@ -80,6 +80,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const sleepRef = useRef<Sleep>(null);
   const docked = useRef(false);
   const onEnd = useRef<() => void>(() => {});
+  const lastSave = useRef(0);
 
   useEffect(() => {
     prefs.current = { loop, autoNext };
@@ -101,12 +102,13 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const load = useCallback((c: Clip, play = true) => {
     endedFor.current = null;
     captionsOff.current = false;
-    setNow(c.start);
+    const from = peekResumeAt(c.slug) ?? c.start; // a "Continue" tap starts partway in
+    setNow(from);
     setError(null);
     setEnded(false);
     const p = player.current;
     if (!ready(p)) return; // still loading: it starts from the current clip once ready
-    const o = { videoId: c.videoId, startSeconds: c.start, endSeconds: c.end };
+    const o = { videoId: c.videoId, startSeconds: from, endSeconds: c.end };
     if (play) p.loadVideoById(o);
     else p.cueVideoById(o);
   }, []);
@@ -209,18 +211,19 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
           videoId: c.videoId,
           width: "100%",
           height: "100%",
-          playerVars: { start: c.start, end: c.end, autoplay: 1, playsinline: 1, rel: 0, cc_load_policy: 0, origin: window.location.origin },
+          playerVars: { start: peekResumeAt(c.slug) ?? c.start, end: c.end, autoplay: 1, playsinline: 1, rel: 0, cc_load_policy: 0, origin: window.location.origin },
           events: {
             onReady: (e) => {
               // a different bhajan was picked while YouTube's player was still loading
               const n = cur.current;
-              if (n && n.slug !== c.slug) e.target.loadVideoById({ videoId: n.videoId, startSeconds: n.start, endSeconds: n.end });
+              if (n && n.slug !== c.slug) e.target.loadVideoById({ videoId: n.videoId, startSeconds: peekResumeAt(n.slug) ?? n.start, endSeconds: n.end });
             },
             onStateChange: (e) => {
               const c2 = cur.current;
               if (!c2) return;
               if (e.data === STATE.PLAYING) {
                 setPlaying(true);
+                clearResumeAt(); // the "Continue" jump has happened
                 markPlayed(c2.slug);
                 if (!captionsOff.current) {
                   captionsOff.current = true;
@@ -255,6 +258,12 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       if (!ready(p) || !c) return;
       const s = p.getCurrentTime();
       setNow(s);
+      // remember where we are (every ~5 seconds) so the home page can offer "Continue"
+      if (p.getPlayerState() === STATE.PLAYING && Date.now() - lastSave.current > 5000) {
+        lastSave.current = Date.now();
+        if (s >= c.end - 10) clearResume(c.slug);
+        else if (s > c.start + 5) saveResume(c.slug, s);
+      }
       if (s >= c.end - 0.25 && p.getPlayerState() !== STATE.PLAYING) onEnd.current();
     }, 250);
     return () => window.clearInterval(t);
