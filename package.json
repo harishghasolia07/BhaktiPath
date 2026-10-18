@@ -12,6 +12,7 @@
     "clip": "tsx scripts/clip.ts",
     "check:screens": "node scripts/check-screens.mjs --base http://localhost:3100",
     "find": "tsx scripts/find-bhajans.ts",
+    "add-videos": "tsx scripts/add-videos.ts",
     "check:fit": "node scripts/check-fit.mjs",
     "check:phone": "node scripts/check-phone-shell.mjs"
   },

@@ -109,3 +109,25 @@ written to `.data/outbox.log` instead). If someone later signs in with
 Google using the same email, the accounts merge and the old password is removed. Without the two Google
 variables the Google button is hidden and email/password still works. Accounts and videos are stored in the same MongoDB database (`users`, `uservideos`), or in
 `.data/users.json` / `.data/uservideos.json` when no database is configured.
+
+## Adding new videos (the routine)
+
+The owner sends notes like:
+
+```
+day 1 - https://www.youtube.com/watch?v=XXXXXXXXXXX
+15:30 - 26:50 - hey gopal radhe krishna govind govind
+2:24:18 - mix - man bhul mat jaaio radha rani ke charan, radhe radhe govind govind radhe
+```
+
+1. Save the notes to a file (e.g. `.data/notes.txt`) and run `npm run add-videos -- plan .data/notes.txt`.
+   It reads the notes, downloads the video's Hindi captions (yt-dlp), tidies the names, **uses the times exactly as given**,
+   finds a missing end from the captions (a missing start can't be guessed: ask the owner), prints what is sung at the start,
+   the end and (for mixes) all through the range, warns about a range that starts or ends in speaking, and flags clips that
+   are already in the collection (same video, overlapping or within a minute). The plan is written to `.data/add-plan.json`.
+2. Correct the titles in the plan from what the captions say (spelling, grammar). For a mix, list the bhajans heard in the
+   range; if they can't be told apart, keep the owner's names. Set `allowDuplicate` / `skip` where needed.
+3. `npm run add-videos -- save` saves them to the database and refreshes the live site (and a local dev server).
+   `--direct` on `plan` saves straight away when there are no problems and no duplicates.
+
+Tests for each part: `lib/addnotes.ts`, `lib/tidy.ts`, `lib/evidence.ts`, `lib/duplicates.ts`.
