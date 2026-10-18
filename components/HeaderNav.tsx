@@ -3,11 +3,41 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { UserRound } from "lucide-react";
+import { useAccount } from "@/lib/account-client";
 
 const LINKS = [
   { href: "/", hi: "दर्शन समय", en: "Timings" },
   { href: "/kathas", hi: "कथा संग्रह", en: "Every katha" },
 ];
+
+/** Sign in, or (signed in) your own videos. Shown once we know which, so it never flashes the wrong one. */
+function AccountLink({ path }: { path: string | null }) {
+  const acct = useAccount();
+  if (acct.status === "loading") return <span className="size-11" aria-hidden="true" />;
+  const on = path !== null && path.startsWith("/my");
+  const name = acct.user?.name.split(" ")[0];
+  return (
+    <Link
+      href="/my"
+      aria-current={on ? "page" : undefined}
+      aria-label={acct.user ? `My videos, signed in as ${acct.user.name}` : "Sign in"}
+      className="ml-0.5 flex min-h-11 items-center gap-2 rounded-full border border-transparent px-2 text-gold no-underline transition-colors hover:border-gold/50 aria-[current=page]:border-gold/70 aria-[current=page]:bg-shyam/70 sm:px-3"
+    >
+      <span className="grid size-8 shrink-0 place-items-center overflow-hidden rounded-full border border-gold/50 bg-shyam">
+        {acct.user?.picture ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={acct.user.picture} alt="" referrerPolicy="no-referrer" className="size-full object-cover" />
+        ) : acct.user ? (
+          <span className="font-semibold">{name?.[0]?.toUpperCase()}</span>
+        ) : (
+          <UserRound className="size-[18px]" aria-hidden="true" />
+        )}
+      </span>
+      <span className="hidden text-[0.95rem] font-semibold md:inline">{acct.user ? "My videos" : "Sign in"}</span>
+    </Link>
+  );
+}
 
 function Links({ path }: { path: string | null }) {
   return (
@@ -28,6 +58,7 @@ function Links({ path }: { path: string | null }) {
           </Link>
         );
       })}
+      <AccountLink path={path} />
     </nav>
   );
 }

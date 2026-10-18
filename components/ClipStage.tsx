@@ -6,7 +6,7 @@ import Link from "next/link";
 import { ExternalLink, ListMusic, Moon, Pause, Play, Repeat, RotateCcw, Settings, Share2 } from "lucide-react";
 import type { Clip } from "@/lib/clip-schema";
 import { CATEGORY_LABELS } from "@/lib/clip-schema";
-import { langOf, libraryHref, sourceLabel } from "@/lib/display";
+import { clipHref, langOf, libraryHref, sourceLabel } from "@/lib/display";
 import { takeAutoplay, usePlayed, usePref } from "@/lib/local";
 import { formatLength, formatTime, thumbnailUrl, youtubeAtUrl } from "@/lib/youtube";
 import { HeartButton } from "./HeartButton";
@@ -274,9 +274,11 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
               </IconToggle>
               {sleepMenu && <SleepMenu anchor={sleepMenu} sleep={sleep} onPick={startSleep} />}
             </div>
-            <IconToggle label="Share this bhajan" onClick={share}>
-              <Share2 className="size-[18px]" aria-hidden="true" />
-            </IconToggle>
+            {!clip.owner && (
+              <IconToggle label="Share this bhajan" onClick={share}>
+                <Share2 className="size-[18px]" aria-hidden="true" />
+              </IconToggle>
+            )}
           </div>
         </div>
         <a
@@ -297,7 +299,7 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
             <h1 lang={langOf(clip.title)} className="font-serif text-[clamp(1.75rem,1.3rem+1.4vw,2.4rem)] leading-[1.15] text-ivory [text-wrap:balance]">
               {clip.title}
             </h1>
-            <HeartButton slug={clip.slug} title={clip.title} className="mt-1 size-11 shrink-0 border border-gold/35 hover:border-gold" />
+            {!clip.owner && <HeartButton slug={clip.slug} title={clip.title} className="mt-1 size-11 shrink-0 border border-gold/35 hover:border-gold" />}
           </div>
           <p className="text-sandal">
             <span className="tabular whitespace-nowrap text-gold">
@@ -310,10 +312,10 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
           </p>
           <p>
             <Link
-              href={libraryHref(clip, clip.videoId)}
+              href={clip.owner ? "/my" : libraryHref(clip, clip.videoId)}
               className="text-sandal underline decoration-gold/40 hover:text-ivory hover:decoration-gold"
             >
-              {sourceLabel(clip)}
+              {clip.owner ? "My videos" : sourceLabel(clip)}
             </Link>
           </p>
           {clip.sample && (
@@ -391,7 +393,7 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
                 {upNext.map((c) => (
                   <li key={c.slug}>
                     <Link
-                      href={`/clip/${c.slug}`}
+                      href={clipHref(c)}
                       onClick={(e) => {
                         e.preventDefault();
                         playClip(c.slug);

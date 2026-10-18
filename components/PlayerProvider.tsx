@@ -9,7 +9,7 @@ import { createContext, useCallback, useContext, useEffect, useLayoutEffect, use
 import Link from "next/link";
 import { Pause, Play, SkipForward, X } from "lucide-react";
 import type { Clip } from "@/lib/clip-schema";
-import { langOf } from "@/lib/display";
+import { clipHref, langOf } from "@/lib/display";
 import { markPlayed, usePref } from "@/lib/local";
 import { formatTime, PLAYER_ERRORS } from "@/lib/youtube";
 import { loadYouTubeApi, STATE, type YTPlayer } from "@/lib/yt-player";
@@ -117,7 +117,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       setCurrent(c);
       // on the clip page, follow along in the address bar and tab title
       if (docked.current) {
-        window.history.replaceState(null, "", `/clip/${c.slug}`);
+        window.history.replaceState(null, "", clipHref(c));
         document.title = `${c.title} · Shravanam Kirtanam`;
       }
     },
@@ -384,7 +384,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
             <div className="absolute inset-x-0 top-0 h-[3px] bg-gold/20" aria-hidden="true">
               <div className="h-full bg-marigold" style={{ width: `${(elapsed / length) * 100}%` }} />
             </div>
-            <Link href={`/clip/${current.slug}`} className="min-w-0 flex-1 no-underline" title="Back to this bhajan's page" data-mini-title>
+            <Link href={clipHref(current)} className="min-w-0 flex-1 no-underline" title="Back to this bhajan's page" data-mini-title>
               <span lang={langOf(current.title)} className="block truncate font-serif text-[1.02rem] leading-snug text-ivory hover:text-marigold">
                 {current.title}
               </span>

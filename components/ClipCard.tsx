@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { CATEGORY_LABELS, type Clip } from "@/lib/clip-schema";
-import { langOf } from "@/lib/display";
+import { clipHref, langOf } from "@/lib/display";
 import { requestAutoplay } from "@/lib/local";
 import { formatLength, formatTime, thumbnailUrl } from "@/lib/youtube";
 import { HeartButton } from "./HeartButton";
@@ -15,7 +15,7 @@ export function ClipCard({ clip, lit }: { clip: Clip; lit: boolean }) {
   return (
     <div className="group/card relative w-full">
       <Link
-        href={`/clip/${clip.slug}`}
+        href={clipHref(clip)}
         onClick={() => requestAutoplay(clip.slug)}
         className="group block w-full no-underline max-sm:flex max-sm:flex-row max-sm:gap-3"
       >
@@ -49,11 +49,11 @@ export function ClipCard({ clip, lit }: { clip: Clip; lit: boolean }) {
           </span>
         </span>
       </Link>
-      <HeartButton
+      {!clip.owner && <HeartButton
         slug={clip.slug}
         title={clip.title}
         className="absolute right-2 top-2 z-10 size-9 bg-velvet/85 text-ivory backdrop-blur-[2px] hover:bg-velvet max-sm:right-1.5 max-sm:top-1.5"
-      />
+      />}
     </div>
   );
 }

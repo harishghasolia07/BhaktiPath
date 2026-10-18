@@ -4,7 +4,7 @@ import { useEffect, useId, useMemo, useState } from "react";
 import Link from "next/link";
 import { Heart, Search, X } from "lucide-react";
 import { CATEGORIES, CATEGORY_LABELS, type Category, type Clip } from "@/lib/clip-schema";
-import { groupByVideo, langOf } from "@/lib/display";
+import { clipHref, groupByVideo, langOf } from "@/lib/display";
 import { requestAutoplay, useFavs, usePlayed } from "@/lib/local";
 import { matchesQuery } from "@/lib/translit";
 import { formatLength, formatTime } from "@/lib/youtube";
@@ -156,7 +156,7 @@ export function Board({ clips }: { clips: Clip[] }) {
                   return (
                     <li key={c.slug} className="relative">
                       <Link
-                        href={`/clip/${c.slug}`}
+                        href={clipHref(c)}
                         onClick={() => requestAutoplay(c.slug)}
                         className="group grid grid-cols-[22px_1fr] items-baseline gap-x-2.5 gap-y-0.5 rounded-[3px] py-2.5 pl-1.5 pr-11 no-underline transition-colors hover:bg-shyam-lit sm:grid-cols-[24px_8.4rem_1fr_auto] sm:gap-x-3 sm:pl-2 sm:pr-12"
                       >

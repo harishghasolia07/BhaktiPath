@@ -12,6 +12,8 @@ export const CATEGORY_LABELS: Record<Category, { en: string; hi: string }> = {
 };
 
 export type Clip = {
+  /** Set on a signed-in person's own video (private to them); absent on the public collection. */
+  owner?: string;
   id: string;
   slug: string;
   title: string;

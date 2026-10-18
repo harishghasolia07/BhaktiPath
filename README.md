@@ -85,3 +85,21 @@ node scripts/e2e-player.mjs   # real YouTube: starts at start, stops at end, loo
 - On phones, YouTube embeds stop when the screen locks (YouTube's rule for embedded players); every clip page has an "open in YouTube" button for listening with the screen off.
 - Atlas's free tier has no backups: use **Download backup** in `/admin` now and then.
 - If stylesheet edits don't show up in `npm run dev` on an NTFS disk, restart it (dev mode polls for changes to cope with this).
+
+## Sign-in with Google and "My videos"
+
+Visitors can sign in with Google (header → the person icon, or `/my`). Signed in, their likes and recently
+played live in their account instead of the browser, and they can add any YouTube video to a private library
+(`/my`), then rename, trim, categorise or add lyrics to it. Only the owner can open, edit or delete them.
+Signed-out visitors still work as before, with likes kept in the browser.
+
+Setup (once):
+1. Google Cloud Console → APIs & Services → Credentials → Create OAuth client ID → *Web application*.
+2. Authorised redirect URIs: `http://localhost:3100/api/auth/google/callback` and
+   `https://<your-domain>/api/auth/google/callback`.
+3. Add `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` to `.env.local` and to the Vercel project's environment
+   variables, then redeploy. `ADMIN_SESSION_SECRET` (32+ characters) also signs the visitor cookie.
+
+Without those two variables, development shows a "Sign in as a test user" link (`/api/auth/dev`, disabled in
+production). Accounts and videos are stored in the same MongoDB database (`users`, `uservideos`), or in
+`.data/users.json` / `.data/uservideos.json` when no database is configured.

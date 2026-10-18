@@ -14,6 +14,11 @@ export function sourceLabel(src: string | KathaSource): string {
   return videoTitle.length > 48 ? `${videoTitle.slice(0, 46)}…` : videoTitle || "Katha";
 }
 
+/** A clip's own page: public clips live under /clip, a person's own videos under /my. */
+export function clipHref(c: Pick<Clip, "owner" | "id" | "slug">): string {
+  return c.owner ? `/my/${c.id}` : `/clip/${c.slug}`;
+}
+
 /** Where the katha library shows this video's clips. */
 export function libraryHref(src: KathaSource, videoId: string): string {
   const k = kathaOf(src);

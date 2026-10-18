@@ -1,0 +1,96 @@
+"use client";
+
+import { useActionState } from "react";
+import { addMyVideo, saveMyVideo } from "@/app/my/actions";
+import { CATEGORIES, CATEGORY_LABELS, type Clip } from "@/lib/clip-schema";
+import { formatTime } from "@/lib/youtube";
+
+const field =
+  "h-12 w-full rounded-[6px] border border-gold/35 bg-shyam px-3.5 text-ivory placeholder:text-mist/70 focus:border-marigold focus:shadow-[0_0_0_1px_var(--color-marigold)] focus:outline-none focus-visible:outline-none aria-[invalid=true]:border-marigold";
+
+/** Add a YouTube video to your own library, or edit one you added. Only the link is needed to add. */
+export function MyVideoForm({ video }: { video?: Clip }) {
+  const [state, action, pending] = useActionState(video ? saveMyVideo : addMyVideo, undefined);
+  const err = state?.fields ?? {};
+  return (
+    <form action={action} className="flex flex-col gap-5">
+      {video && <input type="hidden" name="id" value={video.id} />}
+      {!video && (
+        <label className="flex flex-col gap-1.5">
+          <span className="font-semibold text-sandal">YouTube link</span>
+          <input name="link" inputMode="url" required placeholder="https://www.youtube.com/watch?v=…" aria-invalid={Boolean(err.link)} className={field} />
+          {err.link && <span className="text-[0.9rem] text-marigold">{err.link}</span>}
+        </label>
+      )}
+      <label className="flex flex-col gap-1.5">
+        <span className="font-semibold text-sandal">
+          Name {!video && <span className="font-normal text-mist">(optional: we use the video&apos;s own title)</span>}
+        </span>
+        <input name="title" defaultValue={video?.title} maxLength={140} required={Boolean(video)} aria-invalid={Boolean(err.title)} className={`${field} font-serif text-[1.1rem]`} />
+        {err.title && <span className="text-[0.9rem] text-marigold">{err.title}</span>}
+      </label>
+
+      <fieldset className="flex flex-col gap-1.5">
+        <legend className="mb-1.5 font-semibold text-sandal">Section</legend>
+        <div className="flex flex-wrap gap-2">
+          {CATEGORIES.map((c) => (
+            <label key={c} className="cursor-pointer">
+              <input type="radio" name="category" value={c} defaultChecked={(video?.category ?? "katha") === c} className="peer sr-only" />
+              <span className="flex h-11 items-center rounded-full border border-gold/40 px-5 font-semibold text-sandal peer-checked:border-gold peer-checked:bg-gold peer-checked:text-shyam peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-marigold">
+                {CATEGORY_LABELS[c].en}
+              </span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
+
+      <div className="grid grid-cols-2 gap-3">
+        {(["start", "end"] as const).map((which) => (
+          <label key={which} className="flex flex-col gap-1.5">
+            <span className="font-semibold text-sandal">{which === "start" ? "Starts at" : "Ends at"}</span>
+            <input
+              name={which}
+              defaultValue={video ? formatTime(video[which]) : ""}
+              placeholder={video ? "" : which === "start" ? "0:00" : "End of video"}
+              inputMode="numeric"
+              required={Boolean(video)}
+              aria-invalid={Boolean(err[which])}
+              className={`${field} tabular text-[1.1rem]`}
+            />
+            {err[which] && <span className="text-[0.9rem] text-marigold">{err[which]}</span>}
+          </label>
+        ))}
+      </div>
+      {!video && <p className="-mt-2 text-[0.9rem] text-mist">Leave both empty to add the whole video. Times look like 21:31 or 1:05:20.</p>}
+
+      <label className="flex flex-col gap-1.5">
+        <span className="font-semibold text-sandal">
+          Tags <span className="font-normal text-mist">(optional, comma separated)</span>
+        </span>
+        <input name="tags" defaultValue={video?.tags.join(", ")} className={field} />
+      </label>
+      <label className="flex flex-col gap-1.5">
+        <span className="font-semibold text-sandal">
+          Lyrics or notes <span className="font-normal text-mist">(optional)</span>
+        </span>
+        <textarea
+          name="lyrics"
+          defaultValue={video?.lyrics}
+          rows={5}
+          maxLength={8000}
+          className="min-h-28 w-full rounded-[6px] border border-gold/35 bg-shyam px-3.5 py-2.5 font-serif text-[1.1rem] leading-relaxed text-ivory focus:border-marigold focus:shadow-[0_0_0_1px_var(--color-marigold)] focus:outline-none focus-visible:outline-none"
+        />
+      </label>
+
+      {state?.error && (
+        <p role="alert" className="text-[0.95rem] text-marigold">
+          {state.error}
+          {err.form && ` ${err.form}`}
+        </p>
+      )}
+      <button disabled={pending} className="h-12 w-fit rounded-full bg-gold px-8 font-semibold text-shyam transition-opacity hover:bg-marigold disabled:opacity-60">
+        {pending ? "Saving…" : video ? "Save changes" : "Add to my videos"}
+      </button>
+    </form>
+  );
+}

@@ -4,7 +4,7 @@
 // CLI scripts use this module too.
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { MongoClient, ObjectId, type Collection } from "mongodb";
+import { MongoClient, ObjectId, type Collection, type Db } from "mongodb";
 import { clipInputSchema, makeSlug, type Clip, type ClipData, type ClipInput } from "./clip-schema";
 
 export interface ClipStore {
@@ -167,6 +167,16 @@ function mongoStore(uri: string): ClipStore {
       await (await client(uri)).db("admin").command({ ping: 1 });
     },
   };
+}
+
+/** The Mongo database (same connection as the clips), or null when running on the local file store. */
+export async function getMongoDb(): Promise<Db | null> {
+  const uri = process.env.MONGODB_URI;
+  if (!uri) {
+    if (process.env.VERCEL) throw new Error("MONGODB_URI is not set in this Vercel project's environment variables.");
+    return null;
+  }
+  return (await cached(uri).client).db(process.env.MONGODB_DB || "shravanam");
 }
 
 /* ---------------- Local JSON file ---------------- */

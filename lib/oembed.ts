@@ -10,3 +10,18 @@ export async function fetchVideoTitle(videoId: string): Promise<string> {
     return "";
   }
 }
+
+/** The video's length in seconds, read from its public watch page; 0 when YouTube won't say. */
+export async function fetchVideoLength(videoId: string): Promise<number> {
+  try {
+    const res = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
+      signal: AbortSignal.timeout(7000),
+      headers: { "accept-language": "en", "user-agent": "Mozilla/5.0 (compatible; ShravanamKirtanam/1.0)" },
+    });
+    if (!res.ok) return 0;
+    const m = (await res.text()).match(/"lengthSeconds":"(\d{1,6})"/);
+    return m ? Number(m[1]) : 0;
+  } catch {
+    return 0;
+  }
+}
