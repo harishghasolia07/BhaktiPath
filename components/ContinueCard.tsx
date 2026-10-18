@@ -21,7 +21,7 @@ export function ContinueCard({ clips }: { clips: Clip[] }) {
         requestAutoplay(clip.slug);
         requestResumeAt(clip.slug, t);
       }}
-      className="flex w-full max-w-[34rem] shrink-0 items-center gap-3 rounded-full border border-gold/40 px-3 py-1.5 text-left no-underline hover:border-gold"
+      className="flex w-full min-w-0 max-w-[34rem] shrink-0 items-center gap-3 rounded-full border border-gold/40 px-3 py-1.5 text-left no-underline hover:border-gold"
     >
       <span className="grid size-8 shrink-0 place-items-center rounded-full bg-marigold text-velvet-deep">
         <Play className="size-3.5 fill-current" aria-hidden="true" />

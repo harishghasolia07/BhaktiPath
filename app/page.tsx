@@ -82,11 +82,11 @@ export default async function Home() {
         </div>
       )}
       {clips.length > 0 && (
-        <div className="lg:hidden max-lg:[body:has([data-mini])_&]:hidden">
+        <div className="w-full min-w-0 lg:hidden max-lg:[body:has([data-mini])_&]:hidden">
           <Suspense fallback={<div className="h-[4.75rem] rounded-[10px] border border-gold/20 bg-shyam/40" />}>
             <Today clips={clips} />
           </Suspense>
-          <div className="mt-2 flex justify-center empty:hidden">
+          <div className="mt-2 flex w-full min-w-0 justify-center empty:hidden">
             <ContinueCard clips={clips} />
           </div>
         </div>

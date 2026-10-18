@@ -122,17 +122,32 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
     p.flash(s === null ? "Sleep timer off" : s.kind === "end" ? "Will stop after this bhajan" : `Will pause in ${s.minutes} minutes`);
   }
 
-  function seek(e: React.MouseEvent<HTMLDivElement> | React.KeyboardEvent<HTMLDivElement>) {
+  // Dragging the thumb: the bar follows the finger or mouse; the video jumps when it is let go.
+  const [drag, setDrag] = useState<number | null>(null);
+  const shown = drag ?? elapsed; // while dragging, the bar shows the finger, not the video
+  const fraction = (e: React.PointerEvent<HTMLDivElement>) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    return Math.min(Math.max((e.clientX - r.left) / r.width, 0), 1) * length;
+  };
+  function scrubStart(e: React.PointerEvent<HTMLDivElement>) {
+    if (!mine || (e.pointerType === "mouse" && e.button !== 0)) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    setDrag(fraction(e));
+  }
+  function scrubMove(e: React.PointerEvent<HTMLDivElement>) {
+    if (drag !== null) setDrag(fraction(e));
+  }
+  function scrubEnd(e: React.PointerEvent<HTMLDivElement>) {
+    if (drag === null) return;
+    p.seekTo(clip.start + fraction(e));
+    setDrag(null);
+  }
+  function seekKey(e: React.KeyboardEvent<HTMLDivElement>) {
     if (!mine) return;
-    if ("clientX" in e) {
-      const r = e.currentTarget.getBoundingClientRect();
-      p.seekTo(clip.start + ((e.clientX - r.left) / r.width) * length);
-    } else {
-      const step = e.key === "ArrowRight" ? 5 : e.key === "ArrowLeft" ? -5 : 0;
-      if (!step) return;
-      e.preventDefault();
-      p.seekTo(now + step);
-    }
+    const step = e.key === "ArrowRight" ? 5 : e.key === "ArrowLeft" ? -5 : 0;
+    if (!step) return;
+    e.preventDefault();
+    p.seekTo(now + step);
   }
 
   async function share() {
@@ -218,24 +233,27 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
             aria-label="Position in this clip"
             aria-valuemin={0}
             aria-valuemax={length}
-            aria-valuenow={Math.round(elapsed)}
-            aria-valuetext={`${formatTime(elapsed)} of ${formatTime(length)}`}
-            onClick={seek}
-            onKeyDown={seek}
-            className="group relative h-6 min-w-[160px] flex-1 cursor-pointer"
+            aria-valuenow={Math.round(shown)}
+            aria-valuetext={`${formatTime(shown)} of ${formatTime(length)}`}
+            onPointerDown={scrubStart}
+            onPointerMove={scrubMove}
+            onPointerUp={scrubEnd}
+            onPointerCancel={() => setDrag(null)}
+            onKeyDown={seekKey}
+            className="group relative h-9 min-w-[160px] flex-1 cursor-pointer touch-none select-none"
           >
             <div className="absolute inset-x-0 top-1/2 h-[5px] -translate-y-1/2 rounded-full bg-gold/20" />
             <div
               className="absolute left-0 top-1/2 h-[5px] -translate-y-1/2 rounded-full bg-[linear-gradient(90deg,var(--color-marigold-deep),var(--color-marigold))]"
-              style={{ width: `${(elapsed / length) * 100}%` }}
+              style={{ width: `${(shown / length) * 100}%` }}
             />
             <div
-              className="absolute top-1/2 size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-marigold shadow-[0_1px_4px_rgb(0_0_0/0.5)] transition-transform group-hover:scale-125"
-              style={{ left: `${(elapsed / length) * 100}%` }}
+              className={`absolute top-1/2 size-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-marigold shadow-[0_1px_4px_rgb(0_0_0/0.5)] transition-transform group-hover:scale-125 ${drag !== null ? "scale-150" : ""}`}
+              style={{ left: `${(shown / length) * 100}%` }}
             />
           </div>
           <span className="tabular min-w-[5.5rem] text-right text-[0.95rem] text-sandal">
-            {formatTime(elapsed)} / {formatTime(length)}
+            {formatTime(shown)} / {formatTime(length)}
           </span>
           <div className="flex items-center gap-1.5">
             <button
