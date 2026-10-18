@@ -48,8 +48,9 @@ export function formatTime(total: number): string {
 export function formatLength(seconds: number): string {
   const t = Math.max(0, Math.round(seconds));
   if (t < 60) return `${t} sec`;
-  const h = Math.floor(t / 3600);
-  const m = Math.round((t % 3600) / 60);
+  const total = Math.round(t / 60); // whole minutes first, so 59m40s reads "1 hr", not "0 hr 60 min"
+  const h = Math.floor(total / 60);
+  const m = total % 60;
   if (!h) return `${m} min`;
   return m ? `${h} hr ${m} min` : `${h} hr`;
 }

@@ -11,7 +11,7 @@ import { refreshAccount, useAccount } from "@/lib/account-client";
 import { requestAutoplay, useFavs, usePlayed, useRecent } from "@/lib/local";
 import { shuffled } from "@/lib/shuffle";
 import { matchesQuery } from "@/lib/translit";
-import { thumbnailUrl } from "@/lib/youtube";
+import { formatLength, thumbnailUrl } from "@/lib/youtube";
 import { ClipCard } from "./ClipCard";
 import { usePlayer } from "./PlayerProvider";
 
@@ -217,6 +217,14 @@ export function KathaLibrary({ clips }: { clips: Clip[] }) {
                 </Link>
               )}
               <span className="tabular text-gold">{shown.length}</span> {shown.length === 1 ? "clip" : "clips"}
+              {shown.length > 0 && (
+                <>
+                  {" · "}
+                  <span className="tabular text-gold" title="All of these played one after another">
+                    {formatLength(shown.reduce((sum, { c }) => sum + (c.end - c.start), 0))}
+                  </span>
+                </>
+              )}
             </p>
           </div>
 

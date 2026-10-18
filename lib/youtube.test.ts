@@ -46,6 +46,8 @@ describe("formatTime / formatLength", () => {
     expect(formatLength(45)).toBe("45 sec");
     expect(formatLength(554)).toBe("9 min");
     expect(formatLength(3840)).toBe("1 hr 4 min");
+    expect(formatLength(3580)).toBe("1 hr"); // not "0 hr 60 min"
+    expect(formatLength(7200)).toBe("2 hr");
   });
 });
 
