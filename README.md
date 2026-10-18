@@ -100,6 +100,9 @@ Setup (once):
 3. Add `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` to `.env.local` and to the Vercel project's environment
    variables, then redeploy. `ADMIN_SESSION_SECRET` (32+ characters) also signs the visitor cookie.
 
-Without those two variables, development shows a "Sign in as a test user" link (`/api/auth/dev`, disabled in
-production). Accounts and videos are stored in the same MongoDB database (`users`, `uservideos`), or in
+Email and password also work, side by side with Google (no setup needed): a "Sign in / Create account" form on `/my`.
+Passwords are stored as salted scrypt hashes; five wrong tries pause an account for ten minutes. There is no
+verification email and no "forgot password" yet (both need an email service). If someone later signs in with
+Google using the same email, the accounts merge and the old password is removed. Without the two Google
+variables the Google button is hidden and email/password still works. Accounts and videos are stored in the same MongoDB database (`users`, `uservideos`), or in
 `.data/users.json` / `.data/uservideos.json` when no database is configured.

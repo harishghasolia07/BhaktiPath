@@ -18,10 +18,29 @@ export type User = {
 
 export type GoogleProfile = { sub: string; name: string; email: string; picture: string };
 
+export type Credentials = { id: string; passwordHash: string | null; lockedUntil: number };
+
+export class AccountError extends Error {
+  constructor(public readonly code: "exists" | "google-only") {
+    super(code);
+  }
+}
+
+/** Wrong passwords allowed before an account pauses sign-in, and for how long. */
+export const LOCKOUT = { attempts: 5, minutes: 10 } as const;
+
+const normEmail = (e: string) => e.trim().toLowerCase();
+
 export const LIMITS = { favs: 500, recent: 30, played: 2000, videos: 200 } as const;
 
 export interface AccountStore {
+  /** Signs a Google profile in. An existing account with the same email is linked (and loses any password). */
   upsertGoogleUser(p: GoogleProfile): Promise<User>;
+  /** A new email-and-password account. Throws AccountError("exists") if the email is taken. */
+  createPasswordUser(p: { name: string; email: string; passwordHash: string }): Promise<User>;
+  getCredentials(email: string): Promise<Credentials | null>;
+  recordFailure(userId: string): Promise<void>;
+  clearFailures(userId: string): Promise<void>;
   getUser(id: string): Promise<User | null>;
   setFav(userId: string, key: string, on: boolean): Promise<void>;
   markPlayed(userId: string, key: string): Promise<void>;
@@ -60,7 +79,7 @@ const addFirst = (list: string[], key: string, max: number) => [key, ...list.fil
 
 /* ---------------- MongoDB ---------------- */
 
-type UserDoc = { _id: ObjectId; sub: string; name: string; email: string; picture: string; favs: string[]; recent: string[]; played: string[]; createdAt: Date };
+type UserDoc = { _id: ObjectId; sub?: string; name: string; email: string; picture: string; passwordHash?: string; failed?: number; lockedUntil?: Date; favs: string[]; recent: string[]; played: string[]; createdAt: Date };
 type VideoDoc = Omit<VideoRow, "id" | "createdAt" | "updatedAt"> & { _id: ObjectId; createdAt: Date; updatedAt: Date };
 
 const userOf = (d: UserDoc): User => ({
@@ -80,7 +99,16 @@ function mongoAccounts(db: Db): AccountStore {
   const videos = db.collection<VideoDoc>("uservideos");
   let ready: Promise<unknown> | undefined;
   const init = async () => {
-    ready ??= Promise.all([users.createIndex({ sub: 1 }, { unique: true }), videos.createIndex({ ownerId: 1, createdAt: -1 })]);
+    ready ??= (async () => {
+      // Password accounts have no Google id, so its unique index must only cover accounts that have one.
+      const old = (await users.indexes().catch(() => [])).find((i) => i.name === "sub_1");
+      if (old && !old.partialFilterExpression) await users.dropIndex("sub_1");
+      await Promise.all([
+        users.createIndex({ sub: 1 }, { unique: true, partialFilterExpression: { sub: { $type: "string" } } }),
+        users.createIndex({ email: 1 }, { unique: true }),
+        videos.createIndex({ ownerId: 1, createdAt: -1 }),
+      ]);
+    })();
     try {
       await ready;
     } catch (e) {
@@ -93,15 +121,51 @@ function mongoAccounts(db: Db): AccountStore {
   return {
     async upsertGoogleUser(p) {
       await init();
-      const d = await users.findOneAndUpdate(
-        { sub: p.sub },
-        {
-          $set: { name: p.name, email: p.email, picture: p.picture },
-          $setOnInsert: { favs: [], recent: [], played: [], createdAt: new Date() },
-        },
-        { upsert: true, returnDocument: "after" },
-      );
-      return userOf(d!);
+      const email = normEmail(p.email);
+      const found = (await users.findOne({ sub: p.sub })) ?? (await users.findOne({ email }));
+      if (found) {
+        // Same person, proved by Google: link it, and drop any password someone set for this email before.
+        const d = await users.findOneAndUpdate(
+          { _id: found._id },
+          { $set: { sub: p.sub, email, picture: p.picture, ...(found.sub ? {} : { name: p.name }) }, $unset: { passwordHash: "", failed: "", lockedUntil: "" } },
+          { returnDocument: "after" },
+        );
+        return userOf(d!);
+      }
+      const doc: UserDoc = { _id: new ObjectId(), sub: p.sub, name: p.name, email, picture: p.picture, favs: [], recent: [], played: [], createdAt: new Date() };
+      await users.insertOne(doc);
+      return userOf(doc);
+    },
+    async createPasswordUser(p) {
+      await init();
+      const email = normEmail(p.email);
+      const doc: UserDoc = { _id: new ObjectId(), name: p.name, email, picture: "", passwordHash: p.passwordHash, favs: [], recent: [], played: [], createdAt: new Date() };
+      try {
+        await users.insertOne(doc);
+      } catch (e) {
+        if ((e as { code?: number }).code === 11000) {
+          const other = await users.findOne({ email }, { projection: { passwordHash: 1 } });
+          throw new AccountError(other?.passwordHash ? "exists" : "google-only");
+        }
+        throw e;
+      }
+      return userOf(doc);
+    },
+    async getCredentials(email) {
+      await init();
+      const d = await users.findOne({ email: normEmail(email) });
+      return d ? { id: d._id.toHexString(), passwordHash: d.passwordHash ?? null, lockedUntil: d.lockedUntil?.getTime() ?? 0 } : null;
+    },
+    async recordFailure(userId) {
+      const _id = oid(userId);
+      if (!_id) return;
+      const d = await users.findOneAndUpdate({ _id }, { $inc: { failed: 1 } }, { returnDocument: "after" });
+      if (d && (d.failed ?? 0) >= LOCKOUT.attempts)
+        await users.updateOne({ _id }, { $set: { failed: 0, lockedUntil: new Date(Date.now() + LOCKOUT.minutes * 60_000) } });
+    },
+    async clearFailures(userId) {
+      const _id = oid(userId);
+      if (_id) await users.updateOne({ _id }, { $set: { failed: 0 }, $unset: { lockedUntil: "" } });
     },
     async getUser(id) {
       const _id = oid(id);
@@ -172,7 +236,7 @@ function fileAccounts(): AccountStore {
   const dir = path.join(process.cwd(), ".data");
   const usersFile = path.join(dir, "users.json");
   const videosFile = path.join(dir, "uservideos.json");
-  type UserRow = User & { sub: string };
+  type UserRow = User & { sub?: string; passwordHash?: string; failed?: number; lockedUntil?: number };
   const read = async <T,>(f: string): Promise<T[]> => {
     try {
       return JSON.parse(await fs.readFile(f, "utf8")) as T[];
@@ -191,16 +255,45 @@ function fileAccounts(): AccountStore {
     fn(u);
     await write(usersFile, all);
   };
-  const strip = ({ sub: _sub, ...u }: UserRow): User => u;
+  const strip = ({ sub: _sub, passwordHash: _h, failed: _f, lockedUntil: _l, ...u }: UserRow): User => u;
 
   return {
     async upsertGoogleUser(p) {
       const all = await read<UserRow>(usersFile);
-      let u = all.find((x) => x.sub === p.sub);
-      if (u) Object.assign(u, { name: p.name, email: p.email, picture: p.picture });
-      else all.push((u = { id: new ObjectId().toHexString(), sub: p.sub, name: p.name, email: p.email, picture: p.picture, favs: [], recent: [], played: [] }));
+      const email = normEmail(p.email);
+      let u = all.find((x) => x.sub === p.sub) ?? all.find((x) => x.email === email);
+      if (u) {
+        const linking = !u.sub;
+        Object.assign(u, { sub: p.sub, email, picture: p.picture, ...(linking ? { name: p.name } : {}) });
+        delete u.passwordHash, delete u.failed, delete u.lockedUntil;
+      } else all.push((u = { id: new ObjectId().toHexString(), sub: p.sub, name: p.name, email, picture: p.picture, favs: [], recent: [], played: [] }));
       await write(usersFile, all);
       return strip(u);
+    },
+    async createPasswordUser(p) {
+      const all = await read<UserRow>(usersFile);
+      const email = normEmail(p.email);
+      const other = all.find((x) => x.email === email);
+      if (other) throw new AccountError(other.passwordHash ? "exists" : "google-only");
+      const u: UserRow = { id: new ObjectId().toHexString(), name: p.name, email, picture: "", passwordHash: p.passwordHash, favs: [], recent: [], played: [] };
+      await write(usersFile, [...all, u]);
+      return strip(u);
+    },
+    async getCredentials(email) {
+      const u = (await read<UserRow>(usersFile)).find((x) => x.email === normEmail(email));
+      return u ? { id: u.id, passwordHash: u.passwordHash ?? null, lockedUntil: u.lockedUntil ?? 0 } : null;
+    },
+    async recordFailure(userId) {
+      await editUser(userId, (u) => {
+        u.failed = (u.failed ?? 0) + 1;
+        if (u.failed >= LOCKOUT.attempts) Object.assign(u, { failed: 0, lockedUntil: Date.now() + LOCKOUT.minutes * 60_000 });
+      });
+    },
+    async clearFailures(userId) {
+      await editUser(userId, (u) => {
+        u.failed = 0;
+        delete u.lockedUntil;
+      });
     },
     async getUser(id) {
       const u = (await read<UserRow>(usersFile)).find((x) => x.id === id);
@@ -281,6 +374,10 @@ export function getAccounts(): AccountStore {
     }) as AccountStore[K];
   return {
     upsertGoogleUser: lazy("upsertGoogleUser"),
+    createPasswordUser: lazy("createPasswordUser"),
+    getCredentials: lazy("getCredentials"),
+    recordFailure: lazy("recordFailure"),
+    clearFailures: lazy("clearFailures"),
     getUser: lazy("getUser"),
     setFav: lazy("setFav"),
     markPlayed: lazy("markPlayed"),

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { Pencil } from "lucide-react";
 import { ClipCard } from "@/components/ClipCard";
+import { AuthForms } from "@/components/my/AuthForms";
 import { MyVideoForm } from "@/components/my/MyVideoForm";
 import { getAccounts } from "@/lib/accounts";
 import { googleConfigured } from "@/lib/google";
@@ -42,17 +43,17 @@ async function Body({ search }: { search: PageProps<"/my">["searchParams"] }) {
             {error}
           </p>
         )}
-        {googleConfigured() ? (
-          <a href="/api/auth/google?to=/my" className="inline-flex h-12 items-center rounded-full bg-gold px-7 font-semibold text-shyam no-underline hover:bg-marigold">
-            Continue with Google
-          </a>
-        ) : process.env.NODE_ENV !== "production" ? (
-          <a href="/api/auth/dev" className="inline-flex h-12 items-center rounded-full bg-gold px-7 font-semibold text-shyam no-underline hover:bg-marigold">
-            Sign in as a test user (development only)
-          </a>
-        ) : (
-          <p className="text-sandal">Sign-in isn&apos;t set up on this site yet.</p>
+        {googleConfigured() && (
+          <>
+            <a href="/api/auth/google?to=/my" className="inline-flex h-12 items-center rounded-full bg-gold px-7 font-semibold text-shyam no-underline hover:bg-marigold">
+              Continue with Google
+            </a>
+            <p className="flex w-full max-w-sm items-center gap-3 text-[0.9rem] text-mist before:h-px before:flex-1 before:bg-gold/25 after:h-px after:flex-1 after:bg-gold/25">
+              or use your email
+            </p>
+          </>
         )}
+        <AuthForms />
       </div>
     );
   }
