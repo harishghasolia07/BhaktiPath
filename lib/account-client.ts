@@ -3,6 +3,7 @@
 // /api/me; likes and plays change here first (instantly) and are sent to the server in the background.
 import { useSyncExternalStore } from "react";
 import type { Clip } from "./clip-schema";
+import type { Playlist } from "./playlists";
 
 export type Account = {
   status: "loading" | "out" | "in";
@@ -12,9 +13,13 @@ export type Account = {
   played: string[];
   /** The person's own videos (private to them). */
   videos: Clip[];
+  playlists: PlaylistLite[];
 };
 
-const LOADING: Account = { status: "loading", user: null, favs: [], recent: [], played: [], videos: [] };
+/** What the browser needs of a playlist. */
+export type PlaylistLite = Pick<Playlist, "id" | "name" | "items" | "public">;
+
+const LOADING: Account = { status: "loading", user: null, favs: [], recent: [], played: [], videos: [], playlists: [] };
 let state: Account = LOADING;
 let started = false;
 const listeners = new Set<() => void>();
@@ -34,8 +39,8 @@ function load() {
 export function refreshAccount() {
   started = true;
   fetch("/api/me", { cache: "no-store" })
-    .then((r) => r.json() as Promise<{ user: Account["user"]; favs?: string[]; recent?: string[]; played?: string[]; videos?: Clip[] }>)
-    .then((d) => set(d.user ? { status: "in", user: d.user, favs: d.favs ?? [], recent: d.recent ?? [], played: d.played ?? [], videos: d.videos ?? [] } : { ...LOADING, status: "out" }))
+    .then((r) => r.json() as Promise<{ user: Account["user"]; favs?: string[]; recent?: string[]; played?: string[]; videos?: Clip[]; playlists?: PlaylistLite[] }>)
+    .then((d) => set(d.user ? { status: "in", user: d.user, favs: d.favs ?? [], recent: d.recent ?? [], played: d.played ?? [], videos: d.videos ?? [], playlists: d.playlists ?? [] } : { ...LOADING, status: "out" }))
     .catch(() => set({ ...LOADING, status: "out" }));
 }
 

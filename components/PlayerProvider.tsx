@@ -10,7 +10,9 @@ import Link from "next/link";
 import { Pause, Play, SkipForward, X } from "lucide-react";
 import type { Clip } from "@/lib/clip-schema";
 import { clipHref, langOf } from "@/lib/display";
-import { clearResume, clearResumeAt, markPlayed, peekResumeAt, saveResume, usePref } from "@/lib/local";
+import { clearResume, clearResumeAt, markPlayed, peekResumeAt, saveResume, usePref, useRepeat, useSpeed } from "@/lib/local";
+import { afterEnd, appendToQueue, insertNext, type Repeat } from "@/lib/player-rules";
+import { Scrubber } from "./Scrubber";
 import { formatTime, PLAYER_ERRORS } from "@/lib/youtube";
 import { loadYouTubeApi, STATE, type YTPlayer } from "@/lib/yt-player";
 
@@ -28,6 +30,15 @@ type Player = {
   error: string | null;
   ended: boolean;
   sleep: Sleep;
+  repeat: Repeat;
+  /** 1, 1.25, 1.5 or 0.75 */
+  rate: number;
+  cycleRepeat(): void;
+  cycleRate(): void;
+  /** play this one right after the current bhajan (or start it, if nothing is playing) */
+  playNext(clip: Clip): void;
+  /** put this one at the end of the queue (or start it, if nothing is playing) */
+  addToQueue(clip: Clip): void;
   play(queue: Clip[], slug: string, owner: string): void;
   adopt(owner: string): void;
   toggle(): void;
@@ -66,7 +77,8 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const [sleep, setSleepState] = useState<Sleep>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [slot, setSlot] = useState<{ el: HTMLElement; owner: string } | null>(null);
-  const [loop] = usePref("loop", false);
+  const [repeat, cycleRepeat] = useRepeat();
+  const [rate, cycleRate] = useSpeed();
   const [autoNext] = usePref("autonext", true);
 
   const dock = useRef<HTMLDivElement>(null);
@@ -76,15 +88,20 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const q = useRef<Clip[]>([]);
   const endedFor = useRef<string | null>(null);
   const captionsOff = useRef(false);
-  const prefs = useRef({ loop, autoNext });
+  const prefs = useRef({ repeat, autoNext });
+  const rateRef = useRef(rate);
   const sleepRef = useRef<Sleep>(null);
   const docked = useRef(false);
   const onEnd = useRef<() => void>(() => {});
   const lastSave = useRef(0);
 
   useEffect(() => {
-    prefs.current = { loop, autoNext };
-  }, [loop, autoNext]);
+    prefs.current = { repeat, autoNext };
+  }, [repeat, autoNext]);
+  useEffect(() => {
+    rateRef.current = rate;
+    if (ready(player.current)) player.current.setPlaybackRate?.(rate);
+  }, [rate]);
   useEffect(() => {
     sleepRef.current = sleep;
   }, [sleep]);
@@ -157,6 +174,30 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     if (i >= 0 && i + 1 < list.length) goTo(list[i + 1].slug);
   }, [goTo]);
 
+  const edit = useCallback(
+    (clip: Clip, how: "next" | "end") => {
+      const cs = cur.current?.slug;
+      if (!cs) {
+        // nothing playing: it simply starts, in the mini player
+        q.current = [clip];
+        setQueue([clip]);
+        setOwner("__queue");
+        show(clip);
+        setOpen(true);
+        load(clip, true);
+        flash("Playing now");
+        return;
+      }
+      const list = how === "next" ? insertNext(q.current, cs, clip) : appendToQueue(q.current, cs, clip);
+      q.current = list;
+      setQueue(list);
+      flash(how === "next" ? "Will play next" : "Added to the queue");
+    },
+    [flash, load, show],
+  );
+  const playNext = useCallback((clip: Clip) => edit(clip, "next"), [edit]);
+  const addToQueue = useCallback((clip: Clip) => edit(clip, "end"), [edit]);
+
   const close = useCallback(() => {
     player.current?.destroy();
     player.current = null;
@@ -187,10 +228,9 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         flash("Sleep timer: stopped after this bhajan");
         return;
       }
-      if (prefs.current.loop) return load(c, true);
-      const list = q.current;
-      const i = list.findIndex((x) => x.slug === c.slug);
-      if (prefs.current.autoNext && i >= 0 && i + 1 < list.length) return goTo(list[i + 1].slug);
+      const step = afterEnd({ repeat: prefs.current.repeat, autoNext: prefs.current.autoNext, list: q.current, slug: c.slug });
+      if (step.action === "replay") return load(c, true);
+      if (step.action === "goto") return goTo(step.slug);
       setPlaying(false);
       setEnded(true);
       setOpen(false); // the pat closes: darshan is over
@@ -224,6 +264,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
               if (e.data === STATE.PLAYING) {
                 setPlaying(true);
                 clearResumeAt(); // the "Continue" jump has happened
+                if (rateRef.current !== 1) e.target.setPlaybackRate?.(rateRef.current);
                 markPlayed(c2.slug);
                 if (!captionsOff.current) {
                   captionsOff.current = true;
@@ -311,6 +352,12 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     error,
     ended,
     sleep,
+    repeat,
+    rate,
+    cycleRepeat,
+    cycleRate,
+    playNext,
+    addToQueue,
     play,
     adopt: (who) => setOwner(who),
     toggle: () => {
@@ -389,10 +436,8 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
 
         {mini && current && (
           <div className="relative flex items-center gap-2 px-3 py-2" data-mini>
-            {/* progress through the clip */}
-            <div className="absolute inset-x-0 top-0 h-[3px] bg-gold/20" aria-hidden="true">
-              <div className="h-full bg-marigold" style={{ width: `${(elapsed / length) * 100}%` }} />
-            </div>
+            {/* progress through the clip: drag it, or tap */}
+            <Scrubber variant="thin" length={length} elapsed={elapsed} label="Position in this bhajan" onCommit={(t) => api.seekTo(current.start + t)} />
             <Link href={clipHref(current)} className="min-w-0 flex-1 no-underline" title="Back to this bhajan's page" data-mini-title>
               <span lang={langOf(current.title)} className="block truncate font-serif text-[1.02rem] leading-snug text-ivory hover:text-marigold">
                 {current.title}

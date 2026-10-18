@@ -4,7 +4,8 @@ import Link from "next/link";
 import { CATEGORY_LABELS, type Clip } from "@/lib/clip-schema";
 import { clipHref, langOf } from "@/lib/display";
 import { requestAutoplay, useIsNew } from "@/lib/local";
-import { formatLength, formatTime, thumbnailUrl } from "@/lib/youtube";
+import { formatLength, thumbnailUrl } from "@/lib/youtube";
+import { ClipMenu } from "./ClipMenu";
 import { HeartButton } from "./HeartButton";
 
 /**
@@ -15,6 +16,7 @@ export function ClipCard({ clip, lit }: { clip: Clip; lit: boolean }) {
   const fresh = useIsNew()(clip.createdAt) && !lit && !clip.owner;
   return (
     <div className="group/card relative w-full">
+      <ClipMenu clip={clip} className="absolute bottom-0 right-0 z-10 size-9 max-sm:right-1" />
       <Link
         href={clipHref(clip)}
         onClick={() => requestAutoplay(clip.slug)}
@@ -29,9 +31,6 @@ export function ClipCard({ clip, lit }: { clip: Clip; lit: boolean }) {
             loading="lazy"
             className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
           />
-          <span className="tabular absolute bottom-2 right-2 rounded-md bg-black/80 px-1.5 py-0.5 text-[0.8rem] font-semibold text-ivory max-sm:hidden">
-            {formatTime(clip.start)} – {formatTime(clip.end)}
-          </span>
           {fresh && (
             <span className="absolute left-2 top-2 rounded-md bg-marigold px-1.5 py-0.5 text-[0.7rem] font-bold uppercase leading-none tracking-wider text-velvet-deep max-sm:left-1 max-sm:top-1">New</span>
           )}
@@ -42,9 +41,6 @@ export function ClipCard({ clip, lit }: { clip: Clip; lit: boolean }) {
         <span className="block min-w-0 flex-1 pr-10 pt-3 max-sm:py-0.5">
           <span lang={langOf(clip.title)} className="block font-serif text-[1.08rem] leading-snug text-pretty text-ivory group-hover:text-marigold">
             {clip.title}
-          </span>
-          <span className="tabular mt-1 hidden text-[0.85rem] font-semibold text-gold max-sm:block">
-            {formatTime(clip.start)} – {formatTime(clip.end)}
           </span>
           <span className="mt-1 block text-[0.78rem] font-semibold uppercase tracking-[0.1em] text-mist">
             {CATEGORY_LABELS[clip.category].en} · {formatLength(clip.end - clip.start)}

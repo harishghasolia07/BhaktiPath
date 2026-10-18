@@ -3,7 +3,9 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { ObjectId, type Db } from "mongodb";
-import { type Clip, type ClipInput } from "./clip-schema";
+import { normCategory, type Clip, type ClipInput } from "./clip-schema";
+import { PLAYLIST_LIMITS, type Playlist } from "./playlists";
+import { nextSubmission, type Submission } from "./submission";
 import { ClipValidationError, getMongoDb, validateClip } from "./store";
 
 export type User = {
@@ -55,29 +57,45 @@ export interface AccountStore {
   markPlayed(userId: string, key: string): Promise<void>;
   listVideos(userId: string): Promise<Clip[]>;
   getVideo(userId: string, id: string): Promise<Clip | null>;
-  createVideo(userId: string, input: ClipInput): Promise<Clip>;
-  updateVideo(userId: string, id: string, input: ClipInput): Promise<Clip>;
+  /** `wantsPublic`: offer it to the public collection (the admin approves it first). */
+  createVideo(userId: string, input: ClipInput, wantsPublic?: boolean): Promise<Clip>;
+  /** `wantsPublic` undefined leaves the submission as it is. */
+  updateVideo(userId: string, id: string, input: ClipInput, wantsPublic?: boolean): Promise<Clip>;
+  /** Admin: videos waiting for approval (oldest first), with who sent them. */
+  listPending(): Promise<{ video: Clip; by: { name: string; email: string } }[]>;
+  /** Admin: any person's video by id. */
+  getVideoAny(id: string): Promise<Clip | null>;
+  /** Admin: approve (with the public clip's slug) or reject a pending video. False if it wasn't pending. */
+  reviewVideo(id: string, decision: "approved" | "rejected", publishedSlug?: string): Promise<boolean>;
   removeVideo(userId: string, id: string): Promise<boolean>;
+  listPlaylists(userId: string): Promise<Playlist[]>;
+  /** Any person's playlist by id (the caller decides who may see it). */
+  getPlaylist(id: string): Promise<Playlist | null>;
+  createPlaylist(userId: string, name: string): Promise<Playlist>;
+  /** Changes only the owner's own playlist; null if it isn't theirs. */
+  savePlaylist(userId: string, id: string, patch: { name?: string; public?: boolean; items?: string[] }): Promise<Playlist | null>;
+  deletePlaylist(userId: string, id: string): Promise<boolean>;
   /** Removes the person and everything they kept (videos, likes, history). */
   deleteUser(userId: string): Promise<void>;
   /** For the admin backup: people (no passwords) and their videos. */
-  exportAll(): Promise<{ users: User[]; videos: Clip[] }>;
+  exportAll(): Promise<{ users: User[]; videos: Clip[]; playlists: Playlist[] }>;
 }
 
 /** Likes and play history use "my-<id>" for a person's own videos and the clip slug for the public ones. */
 export const myKey = (id: string) => `my-${id}`;
 
-type VideoRow = Omit<Clip, "id" | "owner" | "slug"> & { id: string; ownerId: string };
+type VideoRow = Omit<Clip, "id" | "owner" | "slug" | "submission"> & { id: string; ownerId: string; submission?: Submission | null; publishedSlug?: string };
 /** Only the clip's own fields: never database internals such as Mongo's _id. */
 const toClip = (r: VideoRow): Clip => ({
   id: r.id,
   slug: myKey(r.id),
   owner: r.ownerId,
+  submission: r.submission ?? null,
   title: r.title,
   videoId: r.videoId,
   start: r.start,
   end: r.end,
-  category: r.category,
+  category: normCategory(r.category),
   tags: r.tags ?? [],
   videoTitle: r.videoTitle ?? "",
   lyrics: r.lyrics ?? "",
@@ -105,6 +123,17 @@ const credOf = (d: UserDoc): Credentials => ({
   verified: Boolean(d.sub) || Boolean(d.verified),
 });
 
+type PlaylistDoc = Omit<Playlist, "id" | "createdAt" | "updatedAt"> & { _id: ObjectId; createdAt: Date; updatedAt: Date };
+const listOf = (d: PlaylistDoc): Playlist => ({
+  id: d._id.toHexString(),
+  ownerId: d.ownerId,
+  name: d.name,
+  items: d.items ?? [],
+  public: Boolean(d.public),
+  createdAt: d.createdAt.toISOString(),
+  updatedAt: d.updatedAt.toISOString(),
+});
+
 const userOf = (d: UserDoc): User => ({
   id: d._id.toHexString(),
   name: d.name,
@@ -121,6 +150,7 @@ const videoOf = (d: VideoDoc): Clip =>
 function mongoAccounts(db: Db): AccountStore {
   const users = db.collection<UserDoc>("users");
   const videos = db.collection<VideoDoc>("uservideos");
+  const lists = db.collection<PlaylistDoc>("playlists");
   let ready: Promise<unknown> | undefined;
   const init = async () => {
     ready ??= (async () => {
@@ -131,6 +161,7 @@ function mongoAccounts(db: Db): AccountStore {
         users.createIndex({ sub: 1 }, { unique: true, partialFilterExpression: { sub: { $type: "string" } } }),
         users.createIndex({ email: 1 }, { unique: true }),
         videos.createIndex({ ownerId: 1, createdAt: -1 }),
+        lists.createIndex({ ownerId: 1, createdAt: 1 }),
       ]);
     })();
     try {
@@ -243,42 +274,95 @@ function mongoAccounts(db: Db): AccountStore {
       const d = _id && (await videos.findOne({ _id, ownerId: userId }));
       return d ? videoOf(d) : null;
     },
-    async createVideo(userId, input) {
+    async createVideo(userId, input, wantsPublic = false) {
       const data = validateClip(input);
       await init();
       if ((await videos.countDocuments({ ownerId: userId })) >= LIMITS.videos)
         throw new ClipValidationError({ form: `You can keep up to ${LIMITS.videos} videos.` });
       const now = new Date();
       const { sample: _s, ...rest } = data;
-      const doc: VideoDoc = { _id: new ObjectId(), ownerId: userId, ...rest, place: rest.place, createdAt: now, updatedAt: now } as VideoDoc;
+      const doc: VideoDoc = { _id: new ObjectId(), ownerId: userId, ...rest, place: rest.place, submission: nextSubmission(null, wantsPublic), createdAt: now, updatedAt: now } as VideoDoc;
       await videos.insertOne(doc);
       return videoOf(doc);
     },
-    async updateVideo(userId, id, input) {
+    async updateVideo(userId, id, input, wantsPublic) {
       const data = validateClip(input);
       const _id = oid(id);
       if (!_id) throw new Error("Video not found.");
+      const old = await videos.findOne({ _id, ownerId: userId });
+      if (!old) throw new Error("Video not found.");
       const { sample: _s, ...rest } = data;
-      const d = await videos.findOneAndUpdate({ _id, ownerId: userId }, { $set: { ...rest, updatedAt: new Date() } }, { returnDocument: "after" });
+      const submission = wantsPublic === undefined ? (old.submission ?? null) : nextSubmission(old.submission, wantsPublic);
+      const d = await videos.findOneAndUpdate({ _id, ownerId: userId }, { $set: { ...rest, submission, updatedAt: new Date() } }, { returnDocument: "after" });
       if (!d) throw new Error("Video not found.");
       return videoOf(d);
+    },
+    async listPending() {
+      await init();
+      const pending = await videos.find({ submission: "pending" }).sort({ createdAt: 1 }).toArray();
+      const owners = await users.find({ _id: { $in: [...new Set(pending.map((p) => p.ownerId))].filter((x) => ObjectId.isValid(x)).map((x) => new ObjectId(x)) } }).toArray();
+      const by = new Map(owners.map((u) => [u._id.toHexString(), { name: u.name, email: u.email }]));
+      return pending.map((p) => ({ video: videoOf(p), by: by.get(p.ownerId) ?? { name: "(deleted)", email: "" } }));
+    },
+    async getVideoAny(id) {
+      const _id = oid(id);
+      const d = _id && (await videos.findOne({ _id }));
+      return d ? videoOf(d) : null;
+    },
+    async reviewVideo(id, decision, publishedSlug) {
+      const _id = oid(id);
+      if (!_id) return false;
+      const r = await videos.updateOne({ _id, submission: "pending" }, { $set: { submission: decision, ...(publishedSlug ? { publishedSlug } : {}), updatedAt: new Date() } });
+      return r.modifiedCount === 1;
+    },
+    async listPlaylists(userId) {
+      await init();
+      return (await lists.find({ ownerId: userId }).sort({ createdAt: 1 }).toArray()).map(listOf);
+    },
+    async getPlaylist(id) {
+      const _id = oid(id);
+      const d = _id && (await lists.findOne({ _id }));
+      return d ? listOf(d) : null;
+    },
+    async createPlaylist(userId, name) {
+      await init();
+      if ((await lists.countDocuments({ ownerId: userId })) >= PLAYLIST_LIMITS.playlists)
+        throw new Error(`You can keep up to ${PLAYLIST_LIMITS.playlists} playlists.`);
+      const now = new Date();
+      const doc: PlaylistDoc = { _id: new ObjectId(), ownerId: userId, name, items: [], public: false, createdAt: now, updatedAt: now };
+      await lists.insertOne(doc);
+      return listOf(doc);
+    },
+    async savePlaylist(userId, id, patch) {
+      const _id = oid(id);
+      if (!_id) return null;
+      const d = await lists.findOneAndUpdate({ _id, ownerId: userId }, { $set: { ...patch, updatedAt: new Date() } }, { returnDocument: "after" });
+      return d ? listOf(d) : null;
+    },
+    async deletePlaylist(userId, id) {
+      const _id = oid(id);
+      return _id ? (await lists.deleteOne({ _id, ownerId: userId })).deletedCount === 1 : false;
     },
     async deleteUser(userId) {
       const _id = oid(userId);
       if (!_id) return;
       await videos.deleteMany({ ownerId: userId });
+      await lists.deleteMany({ ownerId: userId });
       await users.deleteOne({ _id });
     },
     async exportAll() {
       await init();
-      const [u, v] = await Promise.all([users.find({}).toArray(), videos.find({}).toArray()]);
-      return { users: u.map(userOf), videos: v.map(videoOf) };
+      const [u, v, l] = await Promise.all([users.find({}).toArray(), videos.find({}).toArray(), lists.find({}).toArray()]);
+      return { users: u.map(userOf), videos: v.map(videoOf), playlists: l.map(listOf) };
     },
     async removeVideo(userId, id) {
       const _id = oid(id);
       if (!_id) return false;
       const ok = (await videos.deleteOne({ _id, ownerId: userId })).deletedCount === 1;
-      if (ok) await users.updateOne({ _id: new ObjectId(userId) }, { $pull: { favs: myKey(id), recent: myKey(id), played: myKey(id) } });
+      if (ok) {
+        await users.updateOne({ _id: new ObjectId(userId) }, { $pull: { favs: myKey(id), recent: myKey(id), played: myKey(id) } });
+        await lists.updateMany({ ownerId: userId }, { $pull: { items: myKey(id) } });
+      }
       return ok;
     },
   };
@@ -290,6 +374,7 @@ function fileAccounts(): AccountStore {
   const dir = path.join(process.cwd(), ".data");
   const usersFile = path.join(dir, "users.json");
   const videosFile = path.join(dir, "uservideos.json");
+  const listsFile = path.join(dir, "playlists.json");
   type UserRow = User & { sub?: string; passwordHash?: string; failed?: number; lockedUntil?: number; lastMail?: Partial<Record<MailKind, number>> };
   const cred = (u: UserRow): Credentials => ({ id: u.id, email: u.email, name: u.name, passwordHash: u.passwordHash ?? null, lockedUntil: u.lockedUntil ?? 0, lastMail: { verify: u.lastMail?.verify ?? 0, reset: u.lastMail?.reset ?? 0 }, verified: Boolean(u.sub) || u.verified });
   const read = async <T,>(f: string): Promise<T[]> => {
@@ -392,39 +477,93 @@ function fileAccounts(): AccountStore {
       const r = (await read<VideoRow>(videosFile)).find((x) => x.id === id && x.ownerId === userId);
       return r ? toClip(r) : null;
     },
-    async createVideo(userId, input) {
+    async createVideo(userId, input, wantsPublic = false) {
       const data = validateClip(input);
       const all = await read<VideoRow>(videosFile);
       if (all.filter((r) => r.ownerId === userId).length >= LIMITS.videos)
         throw new ClipValidationError({ form: `You can keep up to ${LIMITS.videos} videos.` });
       const now = new Date().toISOString();
       const { sample: _s, ...rest } = data;
-      const row = { id: new ObjectId().toHexString(), ownerId: userId, ...rest, createdAt: now, updatedAt: now } as VideoRow;
+      const row = { id: new ObjectId().toHexString(), ownerId: userId, ...rest, submission: nextSubmission(null, wantsPublic), createdAt: now, updatedAt: now } as VideoRow;
       await write(videosFile, [row, ...all]);
       return toClip(row);
     },
-    async updateVideo(userId, id, input) {
+    async updateVideo(userId, id, input, wantsPublic) {
       const data = validateClip(input);
       const all = await read<VideoRow>(videosFile);
       const i = all.findIndex((x) => x.id === id && x.ownerId === userId);
       if (i < 0) throw new Error("Video not found.");
       const { sample: _s, ...rest } = data;
-      all[i] = { ...all[i], ...rest, updatedAt: new Date().toISOString() };
+      const submission = wantsPublic === undefined ? (all[i].submission ?? null) : nextSubmission(all[i].submission, wantsPublic);
+      all[i] = { ...all[i], ...rest, submission, updatedAt: new Date().toISOString() };
       await write(videosFile, all);
       return toClip(all[i]);
     },
+    async listPending() {
+      const users = await read<UserRow>(usersFile);
+      return (await read<VideoRow>(videosFile))
+        .filter((r) => r.submission === "pending")
+        .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+        .map((r) => {
+          const u = users.find((x) => x.id === r.ownerId);
+          return { video: toClip(r), by: u ? { name: u.name, email: u.email } : { name: "(deleted)", email: "" } };
+        });
+    },
+    async getVideoAny(id) {
+      const r = (await read<VideoRow>(videosFile)).find((x) => x.id === id);
+      return r ? toClip(r) : null;
+    },
+    async reviewVideo(id, decision, publishedSlug) {
+      const all = await read<VideoRow>(videosFile);
+      const r = all.find((x) => x.id === id && x.submission === "pending");
+      if (!r) return false;
+      Object.assign(r, { submission: decision, ...(publishedSlug ? { publishedSlug } : {}), updatedAt: new Date().toISOString() });
+      await write(videosFile, all);
+      return true;
+    },
+    async listPlaylists(userId) {
+      return (await read<Playlist>(listsFile)).filter((l) => l.ownerId === userId).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    },
+    async getPlaylist(id) {
+      return (await read<Playlist>(listsFile)).find((l) => l.id === id) ?? null;
+    },
+    async createPlaylist(userId, name) {
+      const all = await read<Playlist>(listsFile);
+      if (all.filter((l) => l.ownerId === userId).length >= PLAYLIST_LIMITS.playlists) throw new Error(`You can keep up to ${PLAYLIST_LIMITS.playlists} playlists.`);
+      const now = new Date().toISOString();
+      const l: Playlist = { id: new ObjectId().toHexString(), ownerId: userId, name, items: [], public: false, createdAt: now, updatedAt: now };
+      await write(listsFile, [...all, l]);
+      return l;
+    },
+    async savePlaylist(userId, id, patch) {
+      const all = await read<Playlist>(listsFile);
+      const l = all.find((x) => x.id === id && x.ownerId === userId);
+      if (!l) return null;
+      Object.assign(l, patch, { updatedAt: new Date().toISOString() });
+      await write(listsFile, all);
+      return l;
+    },
+    async deletePlaylist(userId, id) {
+      const all = await read<Playlist>(listsFile);
+      const left = all.filter((x) => !(x.id === id && x.ownerId === userId));
+      if (left.length === all.length) return false;
+      await write(listsFile, left);
+      return true;
+    },
     async deleteUser(userId) {
       await write(videosFile, (await read<VideoRow>(videosFile)).filter((r) => r.ownerId !== userId));
+      await write(listsFile, (await read<Playlist>(listsFile)).filter((l) => l.ownerId !== userId));
       await write(usersFile, (await read<UserRow>(usersFile)).filter((u) => u.id !== userId));
     },
     async exportAll() {
-      return { users: (await read<UserRow>(usersFile)).map(strip), videos: (await read<VideoRow>(videosFile)).map(toClip) };
+      return { users: (await read<UserRow>(usersFile)).map(strip), videos: (await read<VideoRow>(videosFile)).map(toClip), playlists: await read<Playlist>(listsFile) };
     },
     async removeVideo(userId, id) {
       const all = await read<VideoRow>(videosFile);
       const left = all.filter((x) => !(x.id === id && x.ownerId === userId));
       if (left.length === all.length) return false;
       await write(videosFile, left);
+      await write(listsFile, (await read<Playlist>(listsFile)).map((l) => (l.ownerId === userId ? { ...l, items: l.items.filter((k) => k !== myKey(id)) } : l)));
       await editUser(userId, (u) => {
         const k = myKey(id);
         u.favs = u.favs.filter((x) => x !== k);
@@ -471,8 +610,16 @@ export function getAccounts(): AccountStore {
     getVideo: lazy("getVideo"),
     createVideo: lazy("createVideo"),
     updateVideo: lazy("updateVideo"),
+    listPending: lazy("listPending"),
+    getVideoAny: lazy("getVideoAny"),
+    reviewVideo: lazy("reviewVideo"),
     removeVideo: lazy("removeVideo"),
     deleteUser: lazy("deleteUser"),
     exportAll: lazy("exportAll"),
+    listPlaylists: lazy("listPlaylists"),
+    getPlaylist: lazy("getPlaylist"),
+    createPlaylist: lazy("createPlaylist"),
+    savePlaylist: lazy("savePlaylist"),
+    deletePlaylist: lazy("deletePlaylist"),
   };
 }

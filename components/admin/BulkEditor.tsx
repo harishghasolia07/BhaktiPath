@@ -9,7 +9,7 @@ import { CATEGORY_LABELS } from "@/lib/clip-schema";
 import { formatLength, formatTime } from "@/lib/youtube";
 
 const EXAMPLE = `https://www.youtube.com/live/fH2lNOThsV0 | Radhe Radhe Japo | 21:31 | 30:45 | bhajan
-https://www.youtube.com/live/fH2lNOThsV0?t=2700 | Hare Krishna Mahamantra | 52:30 | kirtan`;
+https://www.youtube.com/live/fH2lNOThsV0?t=2700 | Hare Krishna Mahamantra | 52:30 | bhajan`;
 
 export function BulkEditor() {
   const [text, setText] = useState("");

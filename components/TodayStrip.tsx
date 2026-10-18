@@ -5,7 +5,7 @@ import { Play } from "lucide-react";
 import type { Clip } from "@/lib/clip-schema";
 import { clipHref, langOf } from "@/lib/display";
 import { requestAutoplay } from "@/lib/local";
-import { formatLength, formatTime, thumbnailUrl } from "@/lib/youtube";
+import { formatLength, thumbnailUrl } from "@/lib/youtube";
 
 /** Phones: today's bhajan as one small card (the temple arch is for bigger screens). */
 export function TodayStrip({ clip }: { clip: Clip }) {
@@ -26,7 +26,7 @@ export function TodayStrip({ clip }: { clip: Clip }) {
           {clip.title}
         </span>
         <span className="tabular block text-[0.8rem] text-sandal">
-          {formatTime(clip.start)} – {formatTime(clip.end)} · {formatLength(clip.end - clip.start)}
+          {formatLength(clip.end - clip.start)}
         </span>
       </span>
       <span className="grid size-10 shrink-0 place-items-center rounded-full bg-marigold text-velvet-deep">

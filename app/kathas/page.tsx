@@ -4,7 +4,7 @@ import { getClips } from "@/lib/clips";
 
 export const metadata: Metadata = {
   title: "Every katha",
-  description: "Every bhajan, kirtan and katha clip, grouped by katha: place, year and day.",
+  description: "Every bhajan and katha clip, with your own bhajans, liked ones, recently played and playlists.",
 };
 
 export default async function KathasPage() {

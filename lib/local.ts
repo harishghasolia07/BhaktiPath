@@ -2,6 +2,7 @@
 // Per-device memory: which bhajans were heard here (lights their diya) and
 // the player toggles. Everything is wrapped so private windows still work.
 import { useCallback, useSyncExternalStore } from "react";
+import { nextRepeat, nextSpeed, readRepeat, readSpeed, type Repeat } from "./player-rules";
 import { isNewClip, type Resume } from "./resume";
 import { accountMarkPlayed, accountToggleFav, getAccount, useAccount } from "./account-client";
 
@@ -136,6 +137,21 @@ function previousVisit(): number {
 export function useIsNew(): (createdAt: string) => boolean {
   const since = useSyncExternalStore(() => () => {}, previousVisit, () => 0);
   return (createdAt) => isNewClip(createdAt, since);
+}
+
+/** Repeat mode: off, repeat the whole list, or repeat this bhajan. */
+export function useRepeat(): [Repeat, () => void] {
+  const raw = useSyncExternalStore(subscribe, () => read("sk:repeat") ?? "", () => "");
+  const legacy = useSyncExternalStore(subscribe, () => read("sk:loop") ?? "", () => "");
+  const cycle = useCallback(() => write("sk:repeat", nextRepeat(readRepeat(read("sk:repeat"), read("sk:loop")))), []);
+  return [readRepeat(raw || null, legacy || null), cycle];
+}
+
+/** Playback speed (1, 1.25, 1.5 or 0.75) and a button-style cycle. */
+export function useSpeed(): [number, () => void] {
+  const raw = useSyncExternalStore(subscribe, () => read("sk:speed") ?? "", () => "");
+  const cycle = useCallback(() => write("sk:speed", String(nextSpeed(readSpeed(read("sk:speed"))))), []);
+  return [readSpeed(raw || null), cycle];
 }
 
 export function usePref(key: "loop" | "autonext", fallback: boolean): [boolean, (v: boolean) => void] {

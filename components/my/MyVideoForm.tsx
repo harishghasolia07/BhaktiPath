@@ -63,6 +63,32 @@ export function MyVideoForm({ video }: { video?: Clip }) {
       </div>
       {!video && <p className="-mt-2 text-[0.9rem] text-mist">Leave both empty to add the whole video. Times look like 21:31 or 1:05:20.</p>}
 
+      <fieldset className="flex flex-col gap-1.5">
+        <legend className="mb-1.5 font-semibold text-sandal">Who can see it</legend>
+        {video?.submission === "approved" ? (
+          <p className="rounded-[6px] border border-gold/30 px-3.5 py-2.5 text-sandal">
+            This video is in the Katha Sangraha for everyone. The public copy is looked after by the site owner, so changes you make here only change your own copy.
+          </p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {(
+              [
+                ["private", "Private", "Only you can see it."],
+                ["public", "Public", "Ask for it to be added to the Katha Sangraha. It appears there only after the site owner approves it."],
+              ] as const
+            ).map(([value, label, hint]) => (
+              <label key={value} className="flex cursor-pointer items-start gap-3 rounded-[6px] border border-gold/30 px-3.5 py-2.5 has-[:checked]:border-gold has-[:checked]:bg-shyam-lit/60">
+                <input type="radio" name="visibility" value={value} defaultChecked={(video?.submission === "pending" ? "public" : "private") === value} className="mt-1 size-4 accent-[var(--color-marigold)]" />
+                <span>
+                  <span className="block font-semibold text-ivory">{label}</span>
+                  <span className="block text-[0.9rem] text-sandal">{hint}</span>
+                </span>
+              </label>
+            ))}
+          </div>
+        )}
+        {video?.submission === "rejected" && <p className="text-[0.9rem] text-mist">The site owner didn&apos;t add this one to the Katha Sangraha. You can change it and ask again by choosing Public.</p>}
+      </fieldset>
       <label className="flex flex-col gap-1.5">
         <span className="font-semibold text-sandal">
           Tags <span className="font-normal text-mist">(optional, comma separated)</span>

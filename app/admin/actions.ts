@@ -6,6 +6,7 @@ import { CLIPS_TAG } from "@/lib/clips";
 import { parseTags, type Category } from "@/lib/clip-schema";
 import { parseBulk } from "@/lib/bulk";
 import { fetchVideoTitle } from "@/lib/oembed";
+import { getAccounts } from "@/lib/accounts";
 import { checkPassword, endSession, isAdmin, startSession } from "@/lib/session";
 import { ClipValidationError, getStore } from "@/lib/store";
 import { parseVideoId } from "@/lib/youtube";
@@ -101,4 +102,42 @@ export async function saveBulk(_: BulkState, form: FormData): Promise<BulkState>
   }
   updateTag(CLIPS_TAG);
   redirect(`/admin?bulk=${good.length}`);
+}
+
+/** Approve a person's public request: it becomes an ordinary clip in the collection (editable like any other). */
+export async function approveSubmission(form: FormData) {
+  await requireAdmin();
+  const id = String(form.get("id") ?? "");
+  const accounts = getAccounts();
+  const v = await accounts.getVideoAny(id);
+  if (!v || v.submission !== "pending") redirect("/admin/submissions");
+  let slug: string;
+  try {
+    const clip = await getStore().create({
+      title: v.title,
+      videoId: v.videoId,
+      start: v.start,
+      end: v.end,
+      category: v.category,
+      tags: v.tags,
+      videoTitle: v.videoTitle || (await fetchVideoTitle(v.videoId)),
+      lyrics: v.lyrics,
+      place: "",
+      day: null,
+      sample: false,
+    });
+    slug = clip.slug;
+  } catch (err) {
+    redirect(`/admin/submissions?error=${encodeURIComponent(err instanceof ClipValidationError ? Object.values(err.issues).join(" ") : (err as Error).message)}`);
+  }
+  await accounts.reviewVideo(id, "approved", slug);
+  updateTag(CLIPS_TAG);
+  redirect(`/admin/submissions?approved=${encodeURIComponent(slug)}`);
+}
+
+/** Decline a public request. The person keeps their private copy and can change it and ask again. */
+export async function rejectSubmission(form: FormData) {
+  await requireAdmin();
+  await getAccounts().reviewVideo(String(form.get("id") ?? ""), "rejected");
+  redirect("/admin/submissions?rejected=1");
 }

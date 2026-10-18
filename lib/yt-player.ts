@@ -11,6 +11,8 @@ export type YTPlayer = {
   getDuration(): number;
   getPlayerState(): number;
   unloadModule?(name: string): void;
+  setPlaybackRate?(rate: number): void;
+  getPlaybackRate?(): number;
   destroy(): void;
 };
 

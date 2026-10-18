@@ -11,8 +11,6 @@ export type Segment = {
   markers: number;
   /** first sung lines, to recognise the bhajan by */
   hint: string;
-  /** "kirtan" when the same short phrases repeat a lot, else "bhajan" */
-  guess: "bhajan" | "kirtan";
 };
 
 const MARKER = /\[(संगीत|गाना गाने की आवाज़|गायन|Music|Singing)\]|♪/;
@@ -78,7 +76,6 @@ export function findSegments(events: CapEvent[], opts: FindOptions = {}): Segmen
       end,
       markers: run.length,
       hint,
-      guess: clean.length > 12 && distinct.size / clean.length < 0.35 ? "kirtan" : "bhajan",
     });
   }
   return out;

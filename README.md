@@ -1,6 +1,6 @@
 # Shravanam Kirtanam · श्रवणं कीर्तनं
 
-Bhajans, kirtans and katha passages from Pujya Shri Indresh Upadhyay Ji Maharaj's Shrimad Bhagwat Katha, each one playing **only its own part** of the long YouTube live stream. Nothing is downloaded: YouTube's own player starts at the clip's start time and stops by itself at its end time.
+Bhajans and katha passages from Pujya Shri Indresh Upadhyay Ji Maharaj's Shrimad Bhagwat Katha, each one playing **only its own part** of the long YouTube live stream. Nothing is downloaded: YouTube's own player starts at the clip's start time and stops by itself at its end time.
 
 An unofficial fan collection. Every video plays from the official [BhaktiPath YouTube channel](https://www.youtube.com/@BhaktiPath).
 
@@ -50,8 +50,8 @@ Which katha a clip belongs to (place, state, year, day) is read from the source 
 
 ## On the site
 
-- **Home:** today's bhajan (changes daily, India time) in the shrine, and the timings board (sections, search, ♥ My bhajans).
-- **कथा संग्रह (`/kathas`):** every katha by place and year, with day / section filters, search that works across scripts ("radhe" finds "राधे"), My bhajans, Recently played, and **Play all**.
+- **Home:** today's bhajan (changes daily, India time) in the shrine, and the timings board (sections, search, ♥ Liked).
+- **कथा संग्रह (`/kathas`):** every katha by place and year, with day / section filters, search that works across scripts ("radhe" finds "राधे"), My bhajans (the videos you added), Liked, Recently played, and **Play all**.
 - **Clip page:** play/pause, repeat, play-next (stays within the same katha first), sleep timer, lyrics, share. Keys: Space or K play/pause, ← → 5 seconds, N next, L repeat.
 - Favourites and recently played are kept per device (no login).
 

@@ -8,8 +8,8 @@ import { ShrineLink } from "@/components/ShrineLink";
 import { TodayStrip } from "@/components/TodayStrip";
 import { getClips } from "@/lib/clips";
 import type { Clip } from "@/lib/clip-schema";
-import { langOf, libraryHref, sourceLabel } from "@/lib/display";
-import { formatLength, formatTime } from "@/lib/youtube";
+import { langOf } from "@/lib/display";
+import { formatLength } from "@/lib/youtube";
 
 /** A bhajan for today (India time): the same all day, a different one tomorrow. */
 function bhajanOfTheDay(clips: Clip[]): Clip | undefined {
@@ -37,14 +37,10 @@ async function Featured({ clips }: { clips: Clip[] }) {
           <span lang="hi" className="font-display text-[1.1rem] text-gold">
             आज का भजन
           </span>{" "}
-          · <span className="tabular whitespace-nowrap text-gold">{formatTime(clip.start)} – {formatTime(clip.end)}</span> ·{" "}
-          <span className="whitespace-nowrap">{formatLength(clip.end - clip.start)}</span>
+          · <span className="tabular whitespace-nowrap text-gold">{formatLength(clip.end - clip.start)}</span>
         </p>
         <p className="text-[0.95rem] text-sandal/90">
-          <Link href={libraryHref(clip, clip.videoId)} className="underline decoration-gold/40 hover:text-ivory hover:decoration-gold">
-            {sourceLabel(clip)}
-          </Link>{" "}
-          · Katha by <span className="font-semibold text-gold">Pujya Shri Indresh Upadhyay Ji Maharaj</span>
+          Katha by <span className="font-semibold text-gold">Pujya Shri Indresh Upadhyay Ji Maharaj</span>
         </p>
       </div>
     </>
@@ -62,7 +58,7 @@ export default async function Home() {
 
   return (
     <main data-shell className="mx-auto grid w-full max-w-[1520px] grid-cols-[minmax(0,1fr)] items-start gap-x-8 gap-y-8 px-4 pt-4 sm:px-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:pt-3 max-lg:flex max-lg:min-h-0 max-lg:flex-1 max-lg:flex-col max-lg:gap-3 max-lg:pb-3 max-lg:pt-3">
-      <h1 className="sr-only">Shravanam Kirtanam: bhajans, kirtans and katha from the Shrimad Bhagwat Katha</h1>
+      <h1 className="sr-only">Shravanam Kirtanam: bhajans and katha from the Shrimad Bhagwat Katha</h1>
       {clips.length ? (
         <div className="min-w-0 flex-col items-center gap-3 max-lg:hidden lg:sticky lg:top-4 lg:flex">
           <Suspense

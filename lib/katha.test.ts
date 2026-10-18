@@ -79,7 +79,7 @@ describe("kathaQueue", () => {
     mk("d5b", dhuri(5), 900),
     mk("d2", dhuri(2), 100),
     mk("d5a", dhuri(5), 50),
-    mk("k1", dhuri(3), 10, "kirtan"),
+    mk("k1", dhuri(3), 10, "katha"),
   ];
 
   it("keeps the current katha together and first, in day then time order, and only its own section", () => {

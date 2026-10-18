@@ -6,6 +6,7 @@ import { LoginForm } from "@/components/admin/LoginForm";
 import { DeleteButton } from "@/components/admin/DeleteButton";
 import { CATEGORY_LABELS } from "@/lib/clip-schema";
 import { groupByVideo, langOf } from "@/lib/display";
+import { getAccounts } from "@/lib/accounts";
 import { isAdmin } from "@/lib/session";
 import { getStore } from "@/lib/store";
 import { formatTime } from "@/lib/youtube";
@@ -35,6 +36,7 @@ async function Admin({ searchParams }: { searchParams: PageProps<"/admin">["sear
   const sp = await searchParams;
   const store = getStore();
   const groups = groupByVideo(await store.list());
+  const waiting = (await getAccounts().listPending()).length;
 
   return (
     <div className="flex flex-col gap-block">
@@ -52,6 +54,13 @@ async function Admin({ searchParams }: { searchParams: PageProps<"/admin">["sear
             className="inline-flex h-11 items-center gap-2 rounded-full border border-gold/50 px-4 text-ivory no-underline hover:border-gold"
           >
             Add many
+          </Link>
+          <Link
+            href="/admin/submissions"
+            className="inline-flex h-11 items-center gap-2 rounded-full border border-gold/50 px-4 text-ivory no-underline hover:border-gold"
+          >
+            Submissions
+            {waiting > 0 && <span className="grid min-w-6 place-items-center rounded-full bg-marigold px-1.5 text-[0.85rem] font-bold text-velvet-deep">{waiting}</span>}
           </Link>
           {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- a file download, not a page */}
           <a

@@ -5,9 +5,8 @@ import { ClipStage } from "@/components/ClipStage";
 import { getClip, getClips } from "@/lib/clips";
 import { getStore } from "@/lib/store";
 import { CATEGORY_LABELS } from "@/lib/clip-schema";
-import { sourceLabel } from "@/lib/display";
 import { kathaQueue } from "@/lib/katha";
-import { formatLength, formatTime, thumbnailUrl } from "@/lib/youtube";
+import { formatLength, thumbnailUrl } from "@/lib/youtube";
 
 /** Cached lookup first; a miss checks the database directly, so a clip added a moment ago never shows "not found". */
 async function findClip(slug: string) {
@@ -24,9 +23,7 @@ export async function generateMetadata({ params }: PageProps<"/clip/[slug]">): P
   const { slug } = await params;
   const clip = await findClip(slug);
   if (!clip) return { title: "Clip not found" };
-  const description = `${CATEGORY_LABELS[clip.category].en} · ${formatTime(clip.start)}–${formatTime(clip.end)} (${formatLength(
-    clip.end - clip.start,
-  )}) · ${sourceLabel(clip)} · Pujya Shri Indresh Upadhyay Ji Maharaj`;
+  const description = `${CATEGORY_LABELS[clip.category].en} · ${formatLength(clip.end - clip.start)} · Pujya Shri Indresh Upadhyay Ji Maharaj`;
   const image = { url: thumbnailUrl(clip.videoId, "hq"), width: 480, height: 360, alt: clip.title };
   return {
     title: clip.title,

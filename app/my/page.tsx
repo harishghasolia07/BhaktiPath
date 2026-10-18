@@ -5,10 +5,10 @@ import { Pencil } from "lucide-react";
 import { ClipCard } from "@/components/ClipCard";
 import { AuthForms } from "@/components/my/AuthForms";
 import { ResendVerification } from "@/components/my/ResendVerification";
-import { DeleteAccountButton } from "@/components/my/DeleteAccountButton";
 import { SyncAccount } from "@/components/my/SyncAccount";
 import { MyVideoForm } from "@/components/my/MyVideoForm";
 import { getAccounts } from "@/lib/accounts";
+import type { Clip } from "@/lib/clip-schema";
 import { googleConfigured } from "@/lib/google";
 import { mailAvailable } from "@/lib/mail";
 import { currentUser } from "@/lib/user-session";
@@ -22,6 +22,18 @@ const ERRORS: Record<string, string> = {
   "not-configured": "Sign-in isn't set up on this site yet.",
   link: "That link has expired or isn't valid. If you need a new one, use “Send it again” below.",
 };
+
+const NOTE = {
+  pending: ["Waiting for the site owner to approve", "text-marigold"],
+  approved: ["Added to the Katha Sangraha", "text-gold"],
+  rejected: ["Not added to the Katha Sangraha", "text-mist"],
+} as const;
+
+function SubmissionNote({ status }: { status: Clip["submission"] }) {
+  if (!status) return null;
+  const [text, tone] = NOTE[status];
+  return <p className={`mt-1.5 text-[0.85rem] font-semibold ${tone}`}>{text}</p>;
+}
 
 export default function MyPage(props: PageProps<"/my">) {
   return (
@@ -75,15 +87,15 @@ async function Body({ search }: { search: PageProps<"/my">["searchParams"] }) {
       )}
       <div className="grid gap-10 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,32rem)] lg:gap-8">
         <section aria-labelledby="mine" className="lg:flex lg:min-h-0 lg:flex-col">
-          <h1 id="mine" className="font-serif lg:shrink-0 text-[clamp(1.9rem,1.4rem+1.5vw,2.6rem)] leading-tight text-ivory">
-            My videos
-          </h1>
-          <div className="mb-6 mt-1 text-sandal lg:mb-4 lg:shrink-0">
-            Hello, {user.name.split(" ")[0]}. {videos.length ? `${videos.length} saved, private to you.` : "Nothing saved yet."}{" "}
-            <form action="/api/auth/logout" method="post" className="inline">
-              <button className="text-sandal underline decoration-gold/40 hover:text-ivory hover:decoration-gold">Sign out</button>
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 lg:shrink-0">
+            <h1 id="mine" lang="en" className="min-w-0 font-serif text-[clamp(1.9rem,1.4rem+1.5vw,2.6rem)] leading-tight text-ivory">
+              Radhe Radhe, {user.name.split(" ")[0]}
+            </h1>
+            <form action="/api/auth/logout" method="post">
+              <button className="h-10 rounded-full border border-gold/50 px-5 font-semibold text-ivory transition-colors hover:border-gold hover:bg-shyam-lit">Sign out</button>
             </form>
           </div>
+          <p className="mb-6 mt-1 text-sandal lg:mb-4 lg:shrink-0">{videos.length ? `${videos.length} ${videos.length === 1 ? "video" : "videos"} saved.` : "Nothing saved yet."}</p>
           <div className="lg:-mr-2 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain lg:pr-2" data-may-scroll>
           {videos.length === 0 ? (
             <p className="rounded-[8px] border border-gold/25 p-5 text-sandal">Add your first YouTube video with the form, and it will appear here.</p>
@@ -92,6 +104,7 @@ async function Body({ search }: { search: PageProps<"/my">["searchParams"] }) {
               {videos.map((v) => (
                 <li key={v.id} className="relative min-w-0">
                   <ClipCard clip={v} lit={false} />
+                  <SubmissionNote status={v.submission} />
                   <Link
                     href={`/my/${v.id}/edit`}
                     aria-label={`Edit ${v.title}`}
@@ -110,9 +123,6 @@ async function Body({ search }: { search: PageProps<"/my">["searchParams"] }) {
             Add a YouTube video
           </h2>
           <MyVideoForm />
-          <div className="mt-6 border-t border-gold/20 pt-4">
-            <DeleteAccountButton />
-          </div>
         </section>
       </div>
     </div>

@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Privacy",
@@ -29,7 +28,9 @@ export default function PrivacyPage() {
           <strong className="text-ivory">With email and password:</strong> we keep your name, email address and a scrambled (hashed) version of your password. We cannot read your
           password.
         </li>
-        <li>We keep your likes, recently played bhajans, and the YouTube videos you add to My videos. Only you can see them.</li>
+        <li>
+          We keep your likes, recently played bhajans, and the YouTube videos you add to My videos. Playlists you make are private to you unless you switch on sharing for one (then anyone with its link can play it; your private videos in it stay hidden). Videos are private to you unless you choose Public for one: then it is sent to the site owner, and if approved a copy is shown to everyone in the Katha Sangraha.
+        </li>
         <li>A sign-in cookie keeps you signed in on this device. It is used for nothing else.</li>
       </ul>
 
@@ -44,12 +45,8 @@ export default function PrivacyPage() {
 
       <h2 className="mb-1 mt-8 font-serif text-[1.4rem] text-ivory">Removing your data</h2>
       <p className="text-sandal">
-        Signed-in people can delete their account on the{" "}
-        <Link href="/my" className="text-ivory underline decoration-gold/50 hover:decoration-gold">
-          My videos
-        </Link>{" "}
-        page (&ldquo;Delete my account and data&rdquo;). That removes the account, likes, history and every video you added. Without an account, clear this site&apos;s data in
-        your browser settings.
+        To have your account, likes, history and videos removed, ask the person who runs this site. Without an account, clear this site&apos;s data in your browser
+        settings.
       </p>
     </main>
   );

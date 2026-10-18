@@ -1,9 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { clipInputSchema, makeSlug, parseTags } from "./clip-schema";
+import { clipInputSchema, makeSlug, normCategory, parseTags } from "./clip-schema";
 import { groupByVideo, langOf, sourceLabel } from "./display";
 import type { Clip } from "./clip-schema";
 
 const base = { title: "Radhe Radhe Japo", videoId: "fH2lNOThsV0", start: "21:31", end: "30:45", category: "bhajan" };
+
+describe("sections", () => {
+  it("has two sections: a kirtan is a bhajan", () => {
+    expect(clipInputSchema.parse({ ...base, category: "kirtan" }).category).toBe("bhajan");
+    expect(clipInputSchema.parse({ ...base, category: "katha" }).category).toBe("katha");
+    expect(clipInputSchema.safeParse({ ...base, category: "other" }).success).toBe(false);
+    expect(["kirtan", "bhajan", undefined, "katha"].map(normCategory)).toEqual(["bhajan", "bhajan", "bhajan", "katha"]);
+  });
+});
 
 describe("clipInputSchema", () => {
   it("parses times into seconds and fills defaults", () => {

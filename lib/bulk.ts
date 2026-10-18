@@ -14,7 +14,7 @@ export type BulkRow = {
 
 const SECTIONS: Record<string, string> = {
   bhajan: "bhajan", "भजन": "bhajan", b: "bhajan",
-  kirtan: "kirtan", "कीर्तन": "kirtan", k: "kirtan",
+  kirtan: "bhajan", "कीर्तन": "bhajan", k: "bhajan", // a kirtan is a bhajan
   katha: "katha", "कथा": "katha",
 };
 
@@ -44,7 +44,7 @@ export function parseBulk(text: string): BulkRow[] {
     const sectionText = (withStart ? parts[4] : parts[3]) ?? "bhajan";
     const category = SECTIONS[sectionText.toLowerCase()] ?? SECTIONS[sectionText];
     if (!category) {
-      row.error = `Section “${sectionText}” should be bhajan, kirtan or katha.`;
+      row.error = `Section “${sectionText}” should be bhajan or katha.`;
       return;
     }
     const r = clipInputSchema.safeParse({ title, videoId, start, end, category });

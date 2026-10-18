@@ -21,7 +21,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: { default: "Shravanam Kirtanam · श्रवणं कीर्तनं", template: "%s · Shravanam Kirtanam" },
   description:
-    "Bhajans, kirtans and katha from Pujya Shri Indresh Upadhyay Ji Maharaj's Shrimad Bhagwat Katha, each playing just its own part.",
+    "Bhajans and katha from Pujya Shri Indresh Upadhyay Ji Maharaj's Shrimad Bhagwat Katha, each playing just its own part.",
   applicationName: "Shravanam Kirtanam",
   // YouTube's player needs the page address (error 153 without it).
   referrer: "strict-origin-when-cross-origin",

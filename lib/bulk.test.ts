@@ -14,7 +14,7 @@ describe("parseBulk", () => {
   it("accepts Hindi section names, skips blanks and comments, numbers lines", () => {
     const rows = parseBulk("# my list\n\nfH2lNOThsV0 | गोविन्द बोलो | 1:00 | 2:00 | कीर्तन\nfH2lNOThsV0 | x | 5:00 | 4:00");
     expect(rows).toHaveLength(2);
-    expect(rows[0]).toMatchObject({ line: 3, clip: { category: "kirtan" } });
+    expect(rows[0]).toMatchObject({ line: 3, clip: { category: "bhajan" } });
     expect(rows[1].line).toBe(4);
     expect(rows[1].error).toMatch(/after the start/);
   });

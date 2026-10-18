@@ -46,10 +46,10 @@ async function main() {
   const videoTitle = await fetchVideoTitle(id);
 
   console.log(`\n${videoTitle || id}\n${segs.length} suggested bhajan${segs.length === 1 ? "" : "s"} (from ${events.length} caption lines)\n`);
-  console.log("  #  start – end            length   guess   sung words");
+  console.log("  #  start – end            length   sung words");
   segs.forEach((s, i) => {
     console.log(
-      `${String(i + 1).padStart(3)}  ${`${formatTime(s.start)} – ${formatTime(s.end)}`.padEnd(20)} ${formatLength(s.end - s.start).padEnd(8)} ${s.guess.padEnd(7)} ${s.hint}`,
+      `${String(i + 1).padStart(3)}  ${`${formatTime(s.start)} – ${formatTime(s.end)}`.padEnd(20)} ${formatLength(s.end - s.start).padEnd(8)} ${s.hint}`,
     );
   });
 
@@ -65,7 +65,7 @@ async function main() {
         videoId: id,
         start: seg.start,
         end: seg.end,
-        category: (flag("category") as "bhajan" | "kirtan" | "katha") ?? seg.guess,
+        category: (flag("category") as "bhajan" | "katha") ?? "bhajan",
         tags: parseTags(flag("tags") ?? ""),
         videoTitle,
       });

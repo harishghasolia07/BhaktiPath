@@ -7,7 +7,8 @@ import { CATEGORIES, CATEGORY_LABELS, type Category, type Clip } from "@/lib/cli
 import { clipHref, groupByVideo, langOf } from "@/lib/display";
 import { requestAutoplay, useFavs, useIsNew, usePlayed } from "@/lib/local";
 import { matchesQuery } from "@/lib/translit";
-import { formatLength, formatTime } from "@/lib/youtube";
+import { formatLength } from "@/lib/youtube";
+import { ClipMenu } from "./ClipMenu";
 import { HeartButton } from "./HeartButton";
 import { Diya } from "./ornaments";
 
@@ -40,7 +41,7 @@ export function Board({ clips }: { clips: Clip[] }) {
   }, [filter, q]);
 
   const counts = useMemo(() => {
-    const c: Record<Filter, number> = { all: clips.length, bhajan: 0, kirtan: 0, katha: 0, fav: 0 };
+    const c: Record<Filter, number> = { all: clips.length, bhajan: 0, katha: 0, fav: 0 };
     for (const clip of clips) {
       c[clip.category]++;
       if (favs.has(clip.slug)) c.fav++;
@@ -80,7 +81,7 @@ export function Board({ clips }: { clips: Clip[] }) {
         <div role="tablist" aria-label="Sections" className="flex flex-wrap gap-1 min-[400px]:gap-1.5 sm:gap-2">
           {FILTERS.map((f) => {
             const on = f === filter;
-            const label = f === "all" ? { en: "All" } : f === "fav" ? { en: "My bhajans" } : CATEGORY_LABELS[f];
+            const label = f === "all" ? { en: "All" } : f === "fav" ? { en: "Liked" } : CATEGORY_LABELS[f];
             return (
               <button
                 key={f}
@@ -145,12 +146,6 @@ export function Board({ clips }: { clips: Clip[] }) {
         ) : (
           groups.map((g) => (
             <div key={g.videoId} className="mt-3">
-              <h3 className="flex items-center gap-3 px-2 pb-1 text-[0.82rem] font-semibold uppercase tracking-[0.16em] text-gold/90">
-                <Link href={g.href} className="text-gold/90 no-underline hover:text-marigold hover:underline">
-                  {g.label}
-                </Link>
-                <span className="h-px flex-1 bg-gold/25" aria-hidden="true" />
-              </h3>
               <ol>
                 {g.clips.map((c) => {
                   const lit = played.has(c.slug);
@@ -159,28 +154,24 @@ export function Board({ clips }: { clips: Clip[] }) {
                       <Link
                         href={clipHref(c)}
                         onClick={() => requestAutoplay(c.slug)}
-                        className="group grid grid-cols-[22px_1fr] items-baseline gap-x-2.5 gap-y-0.5 rounded-[3px] py-2.5 pl-1.5 pr-11 no-underline transition-colors hover:bg-shyam-lit sm:grid-cols-[24px_8.4rem_1fr_auto] sm:gap-x-3 sm:pl-2 sm:pr-12"
+                        className="group grid grid-cols-[22px_1fr] items-start gap-x-2.5 rounded-[3px] py-2.5 pl-1.5 pr-[5.25rem] no-underline transition-colors hover:bg-shyam-lit sm:grid-cols-[24px_1fr] sm:gap-x-3 sm:pl-2 sm:pr-[6rem]"
                       >
-                        <Diya lit={lit} className="row-span-2 size-[22px] self-start sm:row-span-1 sm:size-6" />
-                        <span className="tabular text-[0.84rem] font-semibold text-gold sm:text-[0.98rem]">
-                          {formatTime(c.start)} – {formatTime(c.end)}
-                        </span>
-                        <span className="col-start-2 min-w-0 sm:col-start-auto">
+                        <Diya lit={lit} className="mt-0.5 size-[22px] self-start sm:size-6" />
+                        <span className="min-w-0">
                           <span lang={langOf(c.title)} className="block font-serif text-[1.15rem] leading-snug text-pretty text-ivory group-hover:text-marigold sm:text-[1.2rem]">
                             {c.title}
                           </span>
-                          {filter === "all" && (
-                            <span className="text-[0.78rem] font-semibold uppercase tracking-[0.12em] text-mist">
-                              {CATEGORY_LABELS[c.category].en}
-                              {c.sample ? " · sample" : ""}
-                            </span>
-                          )}
+                          <span className="tabular block text-[0.78rem] font-semibold uppercase tracking-[0.12em] text-mist">
+                            {filter === "all" ? `${CATEGORY_LABELS[c.category].en} · ` : ""}
+                            {formatLength(c.end - c.start)}
+                            {c.sample ? " · sample" : ""}
+                          </span>
                           {!lit && !c.owner && isNew(c.createdAt) && (
                             <span className="ml-2 rounded-md bg-marigold px-1.5 py-0.5 align-middle text-[0.68rem] font-bold uppercase leading-none tracking-wider text-velvet-deep">New</span>
                           )}
                         </span>
-                        <span className="tabular hidden text-[0.9rem] text-mist sm:block">{formatLength(c.end - c.start)}</span>
                       </Link>
+                      <ClipMenu clip={c} className="absolute right-[2.6rem] top-1.5 size-10" />
                       <HeartButton slug={c.slug} title={c.title} className="absolute right-0.5 top-1.5 size-10" />
                     </li>
                   );

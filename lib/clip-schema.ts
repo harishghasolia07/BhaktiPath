@@ -2,18 +2,22 @@
 import { z } from "zod";
 import { isVideoId, parseTime } from "./youtube";
 
-export const CATEGORIES = ["bhajan", "kirtan", "katha"] as const;
+export const CATEGORIES = ["bhajan", "katha"] as const;
 export type Category = (typeof CATEGORIES)[number];
+
+/** Older clips were saved as "kirtan"; there are only two sections now, and a kirtan is a bhajan. */
+export const normCategory = (c: unknown): Category => (c === "katha" ? "katha" : "bhajan");
 
 export const CATEGORY_LABELS: Record<Category, { en: string; hi: string }> = {
   bhajan: { en: "Bhajan", hi: "भजन" },
-  kirtan: { en: "Kirtan", hi: "कीर्तन" },
   katha: { en: "Katha", hi: "कथा" },
 };
 
 export type Clip = {
   /** Set on a signed-in person's own video (private to them); absent on the public collection. */
   owner?: string;
+  /** On a person's own video: whether they asked for it to be added to the public collection. */
+  submission?: "pending" | "approved" | "rejected" | null;
   id: string;
   slug: string;
   title: string;
@@ -53,7 +57,7 @@ export const clipInputSchema = z
     videoId: z.string().trim().refine(isVideoId, "That isn't a YouTube video ID."),
     start: time,
     end: time,
-    category: z.enum(CATEGORIES, { message: "Pick Bhajan, Kirtan or Katha." }),
+    category: z.preprocess((v) => (v === "kirtan" ? "bhajan" : v), z.enum(CATEGORIES, { message: "Pick Bhajan or Katha." })),
     tags: z
       .array(z.string().trim().min(1).max(40))
       .max(12)

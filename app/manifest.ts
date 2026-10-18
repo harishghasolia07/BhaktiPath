@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Shravanam Kirtanam · श्रवणं कीर्तनं",
     short_name: "Kirtanam",
-    description: "Bhajans, kirtans and katha clips from Pujya Shri Indresh Upadhyay Ji Maharaj's Bhagwat Katha.",
+    description: "Bhajans and katha clips from Pujya Shri Indresh Upadhyay Ji Maharaj's Bhagwat Katha.",
     start_url: "/",
     display: "standalone",
     background_color: "#2c040b",

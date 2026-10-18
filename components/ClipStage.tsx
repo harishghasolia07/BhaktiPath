@@ -3,15 +3,17 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { ExternalLink, ListMusic, Moon, Pause, Play, Repeat, RotateCcw, Settings, Share2 } from "lucide-react";
+import { ExternalLink, ListMusic, Moon, Pause, Play, Repeat, Repeat1, RotateCcw, Settings, Share2 } from "lucide-react";
 import type { Clip } from "@/lib/clip-schema";
 import { CATEGORY_LABELS } from "@/lib/clip-schema";
-import { clipHref, langOf, libraryHref, sourceLabel } from "@/lib/display";
+import { clipHref, langOf } from "@/lib/display";
 import { takeAutoplay, usePlayed, usePref } from "@/lib/local";
 import { formatLength, formatTime, thumbnailUrl, youtubeAtUrl } from "@/lib/youtube";
+import { ClipMenu } from "./ClipMenu";
 import { HeartButton } from "./HeartButton";
 import { usePlayer, type Sleep } from "./PlayerProvider";
 import { Diya } from "./ornaments";
+import { Scrubber } from "./Scrubber";
 import { Shrine, shrineMaxWidth } from "./Shrine";
 
 type Props = { queue: Clip[]; initialSlug: string; queueLabel: string };
@@ -35,7 +37,6 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
 
   const [sleepMenu, setSleepMenu] = useState<HTMLElement | null>(null);
   const [tabSel, setTabSel] = useState<{ slug: string; tab: Tab } | null>(null);
-  const [loop, setLoop] = usePref("loop", false);
   const [autoNext, setAutoNext] = usePref("autonext", true);
   const played = usePlayed();
   const slotRef = useRef<HTMLDivElement>(null);
@@ -122,33 +123,8 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
     p.flash(s === null ? "Sleep timer off" : s.kind === "end" ? "Will stop after this bhajan" : `Will pause in ${s.minutes} minutes`);
   }
 
-  // Dragging the thumb: the bar follows the finger or mouse; the video jumps when it is let go.
-  const [drag, setDrag] = useState<number | null>(null);
-  const shown = drag ?? elapsed; // while dragging, the bar shows the finger, not the video
-  const fraction = (e: React.PointerEvent<HTMLDivElement>) => {
-    const r = e.currentTarget.getBoundingClientRect();
-    return Math.min(Math.max((e.clientX - r.left) / r.width, 0), 1) * length;
-  };
-  function scrubStart(e: React.PointerEvent<HTMLDivElement>) {
-    if (!mine || (e.pointerType === "mouse" && e.button !== 0)) return;
-    e.currentTarget.setPointerCapture(e.pointerId);
-    setDrag(fraction(e));
-  }
-  function scrubMove(e: React.PointerEvent<HTMLDivElement>) {
-    if (drag !== null) setDrag(fraction(e));
-  }
-  function scrubEnd(e: React.PointerEvent<HTMLDivElement>) {
-    if (drag === null) return;
-    p.seekTo(clip.start + fraction(e));
-    setDrag(null);
-  }
-  function seekKey(e: React.KeyboardEvent<HTMLDivElement>) {
-    if (!mine) return;
-    const step = e.key === "ArrowRight" ? 5 : e.key === "ArrowLeft" ? -5 : 0;
-    if (!step) return;
-    e.preventDefault();
-    p.seekTo(now + step);
-  }
+  const [shown, setShown] = useState<number | null>(null); // while dragging the bar, the label follows the finger
+  const labelTime = shown ?? elapsed;
 
   async function share() {
     const url = `${window.location.origin}/clip/${clip.slug}`;
@@ -170,7 +146,7 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
       togglePlay,
       seekBy: (sec) => (mine ? pRef.current.seekBy(sec) : undefined),
       nextClip: () => (next ? playClip(next.slug) : undefined),
-      toggleLoop: () => setLoop(!loop),
+      toggleLoop: () => pRef.current.cycleRepeat(),
     };
   });
 
@@ -227,33 +203,9 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
 
         {/* ---------- clip controls ---------- */}
         <div className="flex w-full flex-wrap items-center gap-x-3 gap-y-2" style={{ maxWidth: shrineMaxWidth("4.5rem") }}>
-          <div
-            role="slider"
-            tabIndex={0}
-            aria-label="Position in this clip"
-            aria-valuemin={0}
-            aria-valuemax={length}
-            aria-valuenow={Math.round(shown)}
-            aria-valuetext={`${formatTime(shown)} of ${formatTime(length)}`}
-            onPointerDown={scrubStart}
-            onPointerMove={scrubMove}
-            onPointerUp={scrubEnd}
-            onPointerCancel={() => setDrag(null)}
-            onKeyDown={seekKey}
-            className="group relative h-9 min-w-[160px] flex-1 cursor-pointer touch-none select-none"
-          >
-            <div className="absolute inset-x-0 top-1/2 h-[5px] -translate-y-1/2 rounded-full bg-gold/20" />
-            <div
-              className="absolute left-0 top-1/2 h-[5px] -translate-y-1/2 rounded-full bg-[linear-gradient(90deg,var(--color-marigold-deep),var(--color-marigold))]"
-              style={{ width: `${(shown / length) * 100}%` }}
-            />
-            <div
-              className={`absolute top-1/2 size-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-marigold shadow-[0_1px_4px_rgb(0_0_0/0.5)] transition-transform group-hover:scale-125 ${drag !== null ? "scale-150" : ""}`}
-              style={{ left: `${(shown / length) * 100}%` }}
-            />
-          </div>
+          <Scrubber length={length} elapsed={elapsed} enabled={mine} onCommit={(t) => p.seekTo(clip.start + t)} onPreview={setShown} />
           <span className="tabular min-w-[5.5rem] text-right text-[0.95rem] text-sandal">
-            {formatTime(shown)} / {formatTime(length)}
+            {formatTime(labelTime)} / {formatTime(length)}
           </span>
           <div className="flex items-center gap-1.5">
             <button
@@ -272,9 +224,23 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
             <IconToggle label="Play from the start" onClick={openDarshan}>
               <RotateCcw className="size-[18px]" aria-hidden="true" />
             </IconToggle>
-            <IconToggle label="Repeat this bhajan" pressed={loop} onClick={() => setLoop(!loop)}>
-              <Repeat className="size-[18px]" aria-hidden="true" />
+            <IconToggle
+              label={p.repeat === "off" ? "Repeat: off" : p.repeat === "all" ? "Repeat: the whole list" : "Repeat: this bhajan"}
+              pressed={p.repeat !== "off"}
+              onClick={p.cycleRepeat}
+            >
+              {p.repeat === "one" ? <Repeat1 className="size-[18px]" aria-hidden="true" /> : <Repeat className="size-[18px]" aria-hidden="true" />}
             </IconToggle>
+            <button
+              type="button"
+              title="Playback speed"
+              aria-label={`Playback speed ${p.rate}×. Tap to change`}
+              onClick={p.cycleRate}
+              className="tabular grid h-11 min-w-11 place-items-center rounded-full border border-gold/35 px-2 text-[0.85rem] font-semibold text-sandal transition-colors hover:border-gold hover:text-ivory aria-pressed:border-marigold aria-pressed:text-marigold"
+              aria-pressed={p.rate !== 1}
+            >
+              {p.rate}×
+            </button>
             <IconToggle label="Play the next one automatically" pressed={autoNext} onClick={() => setAutoNext(!autoNext)}>
               <ListMusic className="size-[18px]" aria-hidden="true" />
             </IconToggle>
@@ -297,6 +263,7 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
                 <Share2 className="size-[18px]" aria-hidden="true" />
               </IconToggle>
             )}
+            <ClipMenu clip={clip} className="size-11 border border-gold/35 hover:border-gold" />
           </div>
         </div>
         <a
@@ -320,22 +287,18 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
             {!clip.owner && <HeartButton slug={clip.slug} title={clip.title} className="mt-1 size-11 shrink-0 border border-gold/35 hover:border-gold" />}
           </div>
           <p className="text-sandal">
-            <span className="tabular whitespace-nowrap text-gold">
-              {formatTime(clip.start)} – {formatTime(clip.end)}
-            </span>{" "}
-            · <span className="whitespace-nowrap">{formatLength(length)}</span> ·{" "}
+            <span className="tabular whitespace-nowrap text-gold">{formatLength(length)}</span> ·{" "}
             <span className="whitespace-nowrap">
               {cat.en} <span lang="hi">({cat.hi})</span>
             </span>
           </p>
-          <p>
-            <Link
-              href={clip.owner ? "/my" : libraryHref(clip, clip.videoId)}
-              className="text-sandal underline decoration-gold/40 hover:text-ivory hover:decoration-gold"
-            >
-              {clip.owner ? "My videos" : sourceLabel(clip)}
-            </Link>
-          </p>
+          {clip.owner && (
+            <p>
+              <Link href="/my" className="text-sandal underline decoration-gold/40 hover:text-ivory hover:decoration-gold">
+                My videos
+              </Link>
+            </p>
+          )}
           {clip.sample && (
             <p className="w-fit rounded-full border border-sandal/40 px-3 py-0.5 text-[0.85rem] text-sandal">
               Sample clip: times are placeholders
@@ -347,7 +310,7 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
             target="_blank"
             rel="noopener noreferrer"
           >
-            Open on YouTube at {formatTime(clip.start)}
+            Open on YouTube
             <ExternalLink className="size-3.5" aria-hidden="true" />
           </a>
         </div>
@@ -423,9 +386,7 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
                         <span lang={langOf(c.title)} className="block font-serif text-[1.05rem] leading-snug text-pretty text-ivory">
                           {c.title}
                         </span>
-                        <span className="tabular block text-[0.85rem] text-mist">
-                          {formatTime(c.start)} – {formatTime(c.end)} · <span className="whitespace-nowrap">{sourceLabel(c)}</span>
-                        </span>
+                        <span className="block text-[0.85rem] text-mist">{CATEGORY_LABELS[c.category].en}</span>
                       </span>
                       <span className="tabular text-[0.85rem] text-mist">{formatLength(c.end - c.start)}</span>
                     </Link>
