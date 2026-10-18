@@ -13,6 +13,7 @@ import { shuffled } from "@/lib/shuffle";
 import { matchesQuery } from "@/lib/translit";
 import { formatLength, thumbnailUrl } from "@/lib/youtube";
 import { ClipCard } from "./ClipCard";
+import { PlaylistPicker } from "./PlaylistPicker";
 import { usePlayer } from "./PlayerProvider";
 
 type Section = "all" | Category;
@@ -23,6 +24,7 @@ const chip =
 export function KathaLibrary({ clips }: { clips: Clip[] }) {
   const router = useRouter();
   const player = usePlayer();
+  const [adding, setAdding] = useState(false);
   const [naming, setNaming] = useState(false);
   const [newName, setNewName] = useState("");
   const [newError, setNewError] = useState("");
@@ -243,6 +245,16 @@ export function KathaLibrary({ clips }: { clips: Clip[] }) {
                 </button>
               ))}
             </div>
+            {listId && playlist && (
+              <button
+                type="button"
+                onClick={() => setAdding(true)}
+                className="flex min-h-10 shrink-0 items-center gap-2 rounded-full border border-gold/60 px-4 font-semibold text-ivory hover:border-gold hover:bg-shyam-lit"
+              >
+                <Plus className="size-4" aria-hidden="true" />
+                Add bhajans
+              </button>
+            )}
             {listId && playable.length > 0 && (
               <button
                 type="button"
@@ -316,7 +328,15 @@ export function KathaLibrary({ clips }: { clips: Clip[] }) {
               ) : clips.length === 0
                 ? "No clips yet."
                 : listId && !q.trim() && section === "all"
-                  ? "This playlist is empty. Open ⋯ on any bhajan and choose Add to playlist."
+                  ? (
+                    <>
+                      This playlist is empty.
+                      <br />
+                      <button type="button" onClick={() => setAdding(true)} className="mt-4 inline-flex h-11 items-center gap-2 rounded-full bg-gold px-6 font-semibold text-shyam hover:bg-marigold">
+                        <Plus className="size-[18px]" aria-hidden="true" /> Add bhajans
+                      </button>
+                    </>
+                  )
                   : k === "fav" && !q.trim() && section === "all"
                   ? "Tap the heart on a bhajan to keep it here."
                   : k === "recent" && !q.trim() && section === "all"
@@ -334,6 +354,9 @@ export function KathaLibrary({ clips }: { clips: Clip[] }) {
           )}
         </div>
       </section>
+      {adding && playlist && (
+        <PlaylistPicker playlistId={playlist.id} name={playlist.name} clips={[...clips, ...acct.videos]} onClose={() => setAdding(false)} />
+      )}
     </div>
   );
 }

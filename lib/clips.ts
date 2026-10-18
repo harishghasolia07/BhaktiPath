@@ -9,13 +9,17 @@ export const CLIPS_TAG = "clips";
 export async function getClips() {
   "use cache";
   cacheTag(CLIPS_TAG);
-  cacheLife("max");
+  // Refreshes by itself within minutes, so a change made from another place that shares this database (the admin
+  // page on another deployment, a script, a local copy) shows up without a redeploy. An edit made here is instant.
+  cacheLife({ stale: 60, revalidate: 300, expire: 86_400 });
   return getStore().list();
 }
 
 export async function getClip(slug: string) {
   "use cache";
   cacheTag(CLIPS_TAG);
-  cacheLife("max");
+  // Refreshes by itself within minutes, so a change made from another place that shares this database (the admin
+  // page on another deployment, a script, a local copy) shows up without a redeploy. An edit made here is instant.
+  cacheLife({ stale: 60, revalidate: 300, expire: 86_400 });
   return getStore().getBySlug(slug);
 }

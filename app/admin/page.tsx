@@ -5,7 +5,7 @@ import { LogOut, Pencil, Plus } from "lucide-react";
 import { LoginForm } from "@/components/admin/LoginForm";
 import { DeleteButton } from "@/components/admin/DeleteButton";
 import { CATEGORY_LABELS } from "@/lib/clip-schema";
-import { groupByVideo, langOf } from "@/lib/display";
+import { groupByDate, langOf } from "@/lib/display";
 import { getAccounts } from "@/lib/accounts";
 import { isAdmin } from "@/lib/session";
 import { getStore } from "@/lib/store";
@@ -35,7 +35,7 @@ async function Admin({ searchParams }: { searchParams: PageProps<"/admin">["sear
   }
   const sp = await searchParams;
   const store = getStore();
-  const groups = groupByVideo(await store.list());
+  const groups = groupByDate(await store.list());
   const waiting = (await getAccounts().listPending()).length;
 
   return (
@@ -112,8 +112,13 @@ async function Admin({ searchParams }: { searchParams: PageProps<"/admin">["sear
 
       {groups.length === 0 && <p className="text-sandal">No clips yet. Add the first one.</p>}
       {groups.map((g) => (
-        <section key={g.videoId} className="flex flex-col gap-2">
-          <h2 className="text-[0.85rem] font-semibold uppercase tracking-[0.16em] text-gold">{g.label}</h2>
+        <section key={g.key} className="flex flex-col gap-2">
+          <h2 className="flex items-baseline gap-3 text-[0.85rem] font-semibold uppercase tracking-[0.16em] text-gold">
+            {g.label}
+            <span className="font-normal normal-case tracking-normal text-mist">
+              {g.clips.length} {g.clips.length === 1 ? "clip" : "clips"} added
+            </span>
+          </h2>
           <ul className="divide-y divide-gold/15 rounded-[6px] border border-gold/25 bg-shyam/70">
             {g.clips.map((c) => (
               <li key={c.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-2.5 sm:flex-nowrap">

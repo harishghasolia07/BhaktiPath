@@ -5,6 +5,8 @@ import { activeLine, type LyricLine } from "@/lib/lyrics";
 
 /* ---------- loading: once per clip, shared by every component that asks ---------- */
 const cache = new Map<string, LyricLine[] | "loading">();
+/** One shared empty list: a snapshot must be the same object every time, or React loops. */
+const NONE: LyricLine[] = [];
 const listeners = new Set<() => void>();
 function load(slug: string) {
   if (cache.has(slug)) return;
@@ -23,13 +25,13 @@ export function useSyncedLyrics(slug: string, enabled = true): LyricLine[] | nul
       listeners.add(cb);
       return () => listeners.delete(cb);
     },
-    () => (enabled ? cache.get(slug) : []),
+    () => (enabled ? cache.get(slug) : NONE),
     () => undefined,
   );
   useEffect(() => {
     if (enabled) load(slug);
   }, [slug, enabled]);
-  if (!enabled) return [];
+  if (!enabled) return NONE;
   return value === undefined || value === "loading" ? null : value;
 }
 

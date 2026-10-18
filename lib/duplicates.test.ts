@@ -20,3 +20,23 @@ describe("findDuplicates", () => {
     expect(findDuplicates(a, [a])).toEqual([]);
   });
 });
+
+import { findRepeat } from "./duplicates";
+
+describe("findRepeat (a video someone adds)", () => {
+  const clip = { videoId: "AAAAAAAAAAA", start: 1000, end: 1600, title: "x" };
+  it("flags the same part, or most of it", () => {
+    expect(findRepeat({ videoId: "AAAAAAAAAAA", start: 1000, end: 1600 }, [clip])?.reason).toBe("overlap");
+    expect(findRepeat({ videoId: "AAAAAAAAAAA", start: 1100, end: 1500 }, [clip])?.reason).toBe("overlap"); // a trim of it
+    expect(findRepeat({ videoId: "AAAAAAAAAAA", start: 1300, end: 1900 }, [clip])?.reason).toBe("overlap"); // half covered
+  });
+  it("does not flag a whole video that only contains the clip, nor a bhajan cut out of a whole video", () => {
+    expect(findRepeat({ videoId: "AAAAAAAAAAA", start: 0, end: 10000 }, [clip])).toBeNull();
+    expect(findRepeat({ videoId: "AAAAAAAAAAA", start: 1000, end: 1600 }, [{ ...clip, start: 0, end: 10000 }])).toBeNull();
+  });
+  it("flags a neighbour within a minute, not further away or on another video", () => {
+    expect(findRepeat({ videoId: "AAAAAAAAAAA", start: 1650, end: 1900 }, [clip])?.reason).toBe("near");
+    expect(findRepeat({ videoId: "AAAAAAAAAAA", start: 1700, end: 1900 }, [clip])).toBeNull();
+    expect(findRepeat({ videoId: "BBBBBBBBBBB", start: 1000, end: 1600 }, [clip])).toBeNull();
+  });
+});

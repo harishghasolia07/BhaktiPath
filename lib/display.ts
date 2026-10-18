@@ -52,6 +52,28 @@ export function groupByVideo(clips: Clip[]): ClipGroup[] {
     .map(({ videoId, label, href, clips }) => ({ videoId, label, href, clips: clips.sort((a, b) => a.start - b.start) }));
 }
 
+const IST = 5.5 * 3600_000;
+const dayKey = (ms: number) => new Date(ms + IST).toISOString().slice(0, 10);
+
+export type DateGroup = { key: string; label: string; clips: Clip[] };
+
+/** Clips grouped by the (India) day they were added, newest day first and newest clip first inside a day. */
+export function groupByDate(clips: Clip[], now = Date.now()): DateGroup[] {
+  const today = dayKey(now);
+  const yesterday = dayKey(now - 86_400_000);
+  const groups = new Map<string, Clip[]>();
+  for (const c of [...clips].sort((a, b) => b.createdAt.localeCompare(a.createdAt))) {
+    const k = dayKey(Date.parse(c.createdAt));
+    groups.set(k, [...(groups.get(k) ?? []), c]);
+  }
+  return [...groups]
+    .sort((a, b) => b[0].localeCompare(a[0]))
+    .map(([key, list]) => {
+      const date = new Date(`${key}T00:00:00Z`).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+      return { key, label: key === today ? `Today · ${date}` : key === yesterday ? `Yesterday · ${date}` : date, clips: list };
+    });
+}
+
 /** The order clips play in when "autoplay next" is on: board order. */
 export function boardOrder(clips: Clip[]): Clip[] {
   return groupByVideo(clips).flatMap((g) => g.clips);

@@ -6,6 +6,7 @@ import { ChevronLeft, Play } from "lucide-react";
 import { ClipCard } from "@/components/ClipCard";
 import { PlaylistManager, type Row } from "@/components/playlists/PlaylistManager";
 import { getAccounts } from "@/lib/accounts";
+import { getClips } from "@/lib/clips";
 import { getStore } from "@/lib/store";
 import { visibleKeys } from "@/lib/playlists";
 import { currentUser } from "@/lib/user-session";
@@ -14,7 +15,7 @@ export const metadata: Metadata = { title: "Playlist", robots: { index: false } 
 
 export default function PlaylistPage(props: PageProps<"/playlists/[id]">) {
   return (
-    <main className="mx-auto w-full max-w-[860px] px-4 pb-10 pt-6 sm:px-6">
+    <main className="mx-auto w-full max-w-[1520px] px-4 pb-10 pt-6 sm:px-6">
       <Suspense fallback={<p className="text-sandal">Loading…</p>}>
         <Body params={props.params} />
       </Suspense>
@@ -36,13 +37,14 @@ async function Body({ params }: { params: PageProps<"/playlists/[id]">["params"]
   const rows: Row[] = await Promise.all(keys.map(async (key) => ({ key, clip: own.get(key) ?? (key.startsWith("my-") ? null : await store.getBySlug(key)) })));
 
   if (isOwner) {
+    const available = [...(await getClips()), ...own.values()];
     return (
-      <div className="flex flex-col gap-5">
+      <div className="mx-auto flex w-full max-w-[860px] flex-col gap-5">
         <Link href={`/kathas?k=pl:${list.id}`} className="inline-flex w-fit items-center gap-1 text-sandal no-underline hover:text-ivory">
           <ChevronLeft className="size-4" aria-hidden="true" /> Back to the library
         </Link>
         <h1 className="sr-only">Playlist: {list.name}</h1>
-        <PlaylistManager id={list.id} name={list.name} isPublic={list.public} rows={rows} />
+        <PlaylistManager id={list.id} name={list.name} isPublic={list.public} rows={rows} available={available} />
       </div>
     );
   }

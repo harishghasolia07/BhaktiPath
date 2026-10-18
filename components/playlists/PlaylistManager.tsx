@@ -3,9 +3,10 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowDown, ArrowUp, Check, Copy, Play, Shuffle, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, Copy, Play, Plus, Shuffle, Trash2, X } from "lucide-react";
 import { deletePlaylist, moveInPlaylist, removeFromPlaylist, renamePlaylist, setPlaylistPublic } from "@/app/playlists/actions";
 import { usePlayer } from "../PlayerProvider";
+import { PlaylistPicker } from "../PlaylistPicker";
 import { refreshAccount } from "@/lib/account-client";
 import type { Clip } from "@/lib/clip-schema";
 import { clipHref, langOf } from "@/lib/display";
@@ -15,11 +16,12 @@ import { formatLength } from "@/lib/youtube";
 export type Row = { key: string; clip: Clip | null };
 
 /** Your own playlist: rename it, reorder or remove its bhajans, play it, share it by link. */
-export function PlaylistManager({ id, name, isPublic, rows }: { id: string; name: string; isPublic: boolean; rows: Row[] }) {
+export function PlaylistManager({ id, name, isPublic, rows, available }: { id: string; name: string; isPublic: boolean; rows: Row[]; available: Clip[] }) {
   const router = useRouter();
   const player = usePlayer();
   const [title, setTitle] = useState(name);
   const [msg, setMsg] = useState("");
+  const [adding, setAdding] = useState(false);
   const [pending, start] = useTransition();
   const clips = rows.flatMap((r) => (r.clip ? [r.clip] : []));
 
@@ -74,6 +76,13 @@ export function PlaylistManager({ id, name, isPublic, rows }: { id: string; name
         </button>
         <button
           type="button"
+          onClick={() => setAdding(true)}
+          className="flex h-11 items-center gap-2 rounded-full border border-gold/60 px-5 font-semibold text-ivory hover:border-gold hover:bg-shyam-lit"
+        >
+          <Plus className="size-4" aria-hidden="true" /> Add bhajans
+        </button>
+        <button
+          type="button"
           disabled={clips.length < 2}
           onClick={() => play(shuffled(clips))}
           aria-label="Shuffle and play"
@@ -119,7 +128,7 @@ export function PlaylistManager({ id, name, isPublic, rows }: { id: string; name
       </section>
 
       {rows.length === 0 ? (
-        <p className="rounded-[8px] border border-gold/25 p-5 text-sandal">Nothing here yet. Open ⋯ on any bhajan and choose Add to playlist.</p>
+        <p className="rounded-[8px] border border-gold/25 p-5 text-sandal">Nothing here yet. Press “Add bhajans” above to pick some.</p>
       ) : (
         <ol className="flex flex-col gap-2">
           {rows.map(({ key, clip }, i) => (
@@ -167,6 +176,7 @@ export function PlaylistManager({ id, name, isPublic, rows }: { id: string; name
           </span>
         )}
       </div>
+      {adding && <PlaylistPicker playlistId={id} name={name} clips={available} onClose={() => setAdding(false)} onChanged={() => router.refresh()} />}
     </div>
   );
 }

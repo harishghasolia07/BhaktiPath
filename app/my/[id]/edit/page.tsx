@@ -29,14 +29,14 @@ async function Body({ params }: { params: PageProps<"/my/[id]/edit">["params"] }
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center gap-3">
-        <Link href={`/my/${video.id}`} className="grid size-10 place-items-center rounded-full text-sandal hover:bg-shyam-lit" aria-label="Back to the video">
+        <Link href="/my" className="grid size-10 place-items-center rounded-full text-sandal hover:bg-shyam-lit" aria-label="Back to my videos">
           <ChevronLeft className="size-5" aria-hidden="true" />
         </Link>
         <h1 className="font-serif text-[1.9rem] text-ivory">Edit video</h1>
       </div>
       <MyVideoForm video={video} />
       <div className="border-t border-gold/20 pt-5">
-        <MyDeleteButton id={video.id} title={video.title} />
+        <MyDeleteButton id={video.id} title={video.title} approved={video.submission === "approved"} />
       </div>
     </div>
   );

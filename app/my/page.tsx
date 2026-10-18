@@ -24,9 +24,9 @@ const ERRORS: Record<string, string> = {
 };
 
 const NOTE = {
-  pending: ["Waiting for the site owner to approve", "text-marigold"],
-  approved: ["Added to the Katha Sangraha", "text-gold"],
-  rejected: ["Not added to the Katha Sangraha", "text-mist"],
+  pending: ["Waiting for approval to be added to the Katha Sangraha", "text-marigold"],
+  approved: ["Approved: it's now in the Katha Sangraha for everyone", "text-gold"],
+  rejected: ["Not approved for the Katha Sangraha (still yours)", "text-mist"],
 } as const;
 
 function SubmissionNote({ status }: { status: Clip["submission"] }) {
@@ -37,7 +37,7 @@ function SubmissionNote({ status }: { status: Clip["submission"] }) {
 
 export default function MyPage(props: PageProps<"/my">) {
   return (
-    <main className="mx-auto w-full max-w-[1320px] px-4 pb-10 pt-6 sm:px-6 lg:pb-0 lg:pt-4">
+    <main className="mx-auto w-full max-w-[1520px] px-4 pb-10 pt-6 sm:px-6 lg:pb-0 lg:pt-4">
       <Suspense fallback={<p className="text-sandal">Loading…</p>}>
         <Body search={props.searchParams} />
       </Suspense>
@@ -108,7 +108,7 @@ async function Body({ search }: { search: PageProps<"/my">["searchParams"] }) {
                   <Link
                     href={`/my/${v.id}/edit`}
                     aria-label={`Edit ${v.title}`}
-                    className="absolute right-2 top-12 z-10 grid size-9 place-items-center rounded-full bg-velvet/85 text-ivory backdrop-blur-[2px] hover:bg-velvet max-sm:right-1.5 max-sm:top-12"
+                    className="absolute right-2 top-2 z-10 grid size-9 place-items-center rounded-full bg-velvet/85 text-ivory backdrop-blur-[2px] hover:bg-velvet max-sm:right-1.5 max-sm:top-1.5"
                   >
                     <Pencil className="size-4" aria-hidden="true" />
                   </Link>
