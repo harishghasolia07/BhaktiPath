@@ -159,7 +159,7 @@ export function ClipEditor({ clip, existing = [] }: { clip?: Clip; existing?: Ex
           </label>
 
           <label className="flex flex-col gap-1.5">
-            <span className="font-semibold text-sandal">Bhajan name</span>
+            <span className="font-semibold text-sandal">Name</span>
             <input
               name="title"
               value={title}

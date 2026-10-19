@@ -9,7 +9,9 @@ export type Category = (typeof CATEGORIES)[number];
 export const normCategory = (c: unknown): Category => (c === "katha" ? "katha" : "bhajan");
 
 export const CATEGORY_LABELS: Record<Category, { en: string; hi: string }> = {
-  bhajan: { en: "Bhajan", hi: "भजन" },
+  // The saved value stays "bhajan" (nothing in the database changes); what people read is "Kirtan",
+  // because these are the kirtans sung during the katha.
+  bhajan: { en: "Kirtan", hi: "कीर्तन" },
   katha: { en: "Katha", hi: "कथा" },
 };
 
@@ -57,7 +59,7 @@ export const clipInputSchema = z
     videoId: z.string().trim().refine(isVideoId, "That isn't a YouTube video ID."),
     start: time,
     end: time,
-    category: z.preprocess((v) => (v === "kirtan" ? "bhajan" : v), z.enum(CATEGORIES, { message: "Pick Bhajan or Katha." })),
+    category: z.preprocess((v) => (v === "kirtan" ? "bhajan" : v), z.enum(CATEGORIES, { message: "Pick Kirtan or Katha." })),
     tags: z
       .array(z.string().trim().min(1).max(40))
       .max(12)

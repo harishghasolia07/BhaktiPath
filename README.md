@@ -51,7 +51,7 @@ Which katha a clip belongs to (place, state, year, day) is read from the source 
 ## On the site
 
 - **Home:** today's bhajan (changes daily, India time) in the shrine, and the timings board (sections, search, ♥ Liked).
-- **कथा संग्रह (`/kathas`):** every katha by place and year, with day / section filters, search that works across scripts ("radhe" finds "राधे"), My bhajans (the videos you added), Liked, Recently played, and **Play all**.
+- **कथा संग्रह (`/kathas`):** every clip with section filters (Kirtan, Katha), search that works across scripts ("radhe" finds "राधे"), My bhajans (the videos you added), Liked, Recently played, and **Play all**.
 - **Clip page:** play/pause, repeat, play-next (stays within the same katha first), sleep timer, lyrics, share. Keys: Space or K play/pause, ← → 5 seconds, N next, L repeat.
 - Favourites and recently played are kept per device (no login).
 

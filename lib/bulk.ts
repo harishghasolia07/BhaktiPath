@@ -13,7 +13,7 @@ export type BulkRow = {
 };
 
 const SECTIONS: Record<string, string> = {
-  bhajan: "bhajan", "भजन": "bhajan", b: "bhajan",
+  bhajan: "bhajan", "भजन": "bhajan", b: "bhajan", // all mean the Kirtan section (saved as "bhajan")
   kirtan: "bhajan", "कीर्तन": "bhajan", k: "bhajan", // a kirtan is a bhajan
   katha: "katha", "कथा": "katha",
 };

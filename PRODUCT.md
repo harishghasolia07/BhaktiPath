@@ -25,7 +25,7 @@ YouTube can link to a start time but not an end time, and the bhajans are buried
 
 ## Operating Context
 
-- Sections: **Bhajan** (every song, kirtan included) and **Katha** (katha passages that are not songs). Clips may also carry free tags.
+- Sections: **Kirtan** (the songs sung during the katha; saved internally as "bhajan") and **Katha** (katha passages that are not songs). Clips may also carry free tags.
 - Titles are given by the owner and may be Hinglish (Latin script) or Hindi (Devanagari).
 - Many clips come from the same day's stream, so they share one YouTube thumbnail.
 - Clips are added by the owner from a password-protected admin page (often on a phone, while listening) or by the owner's assistant from the terminal.
