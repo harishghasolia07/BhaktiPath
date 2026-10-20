@@ -3,7 +3,7 @@
 import { useEffect, useId, useMemo, useState } from "react";
 import Link from "next/link";
 import { Heart, Search, X } from "lucide-react";
-import { CATEGORIES, CATEGORY_LABELS, type Category, type Clip } from "@/lib/clip-schema";
+import { CATEGORIES, CATEGORY_LABELS, sectionsText, type Category, type Clip } from "@/lib/clip-schema";
 import { clipHref, groupByVideo, langOf } from "@/lib/display";
 import { requestAutoplay, useFavs, useIsNew, usePlayed } from "@/lib/local";
 import { matchesQuery } from "@/lib/translit";
@@ -41,9 +41,9 @@ export function Board({ clips }: { clips: Clip[] }) {
   }, [filter, q]);
 
   const counts = useMemo(() => {
-    const c: Record<Filter, number> = { all: clips.length, bhajan: 0, katha: 0, fav: 0 };
+    const c: Record<Filter, number> = { all: clips.length, bhajan: 0, kirtan: 0, katha: 0, fav: 0 };
     for (const clip of clips) {
-      c[clip.category]++;
+      for (const k of clip.categories) c[k]++; // a clip in two sections counts in both
       if (favs.has(clip.slug)) c.fav++;
     }
     return c;
@@ -52,7 +52,7 @@ export function Board({ clips }: { clips: Clip[] }) {
   const groups = useMemo(() => {
     const shown = clips.filter(
       (c) =>
-        (filter === "all" || (filter === "fav" ? favs.has(c.slug) : c.category === filter)) &&
+        (filter === "all" || (filter === "fav" ? favs.has(c.slug) : c.categories.includes(filter))) &&
         matchesQuery(`${c.title} ${c.tags.join(" ")}`, q),
     );
     return groupByVideo(shown);
@@ -162,7 +162,7 @@ export function Board({ clips }: { clips: Clip[] }) {
                             {c.title}
                           </span>
                           <span className="tabular block text-[0.78rem] font-semibold uppercase tracking-[0.12em] text-mist">
-                            {filter === "all" ? `${CATEGORY_LABELS[c.category].en} · ` : ""}
+                            {filter === "all" ? `${sectionsText(c)} · ` : ""}
                             {formatLength(c.end - c.start)}
                             {c.sample ? " · sample" : ""}
                           </span>

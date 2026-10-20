@@ -2,18 +2,32 @@
 import { z } from "zod";
 import { isVideoId, parseTime } from "./youtube";
 
-export const CATEGORIES = ["bhajan", "katha"] as const;
+/** The sections a clip can be in. A clip is in one, two or all three. (Display order: Bhajan, Kirtan, Katha.) */
+export const CATEGORIES = ["bhajan", "kirtan", "katha"] as const;
 export type Category = (typeof CATEGORIES)[number];
 
-/** Older clips were saved as "kirtan"; there are only two sections now, and a kirtan is a bhajan. */
-export const normCategory = (c: unknown): Category => (c === "katha" ? "katha" : "bhajan");
-
 export const CATEGORY_LABELS: Record<Category, { en: string; hi: string }> = {
-  // The saved value stays "bhajan" (nothing in the database changes); what people read is "Kirtan",
-  // because these are the kirtans sung during the katha.
-  bhajan: { en: "Kirtan", hi: "कीर्तन" },
+  bhajan: { en: "Bhajan", hi: "भजन" },
+  kirtan: { en: "Kirtan", hi: "कीर्तन" },
   katha: { en: "Katha", hi: "कथा" },
 };
+
+/**
+ * The sections of a saved clip. Clips saved before a clip could be in several sections carry one `category`;
+ * for those, "bhajan" and "kirtan" both meant what the site then called Kirtan, so they read as Kirtan.
+ */
+export function catsOf(doc: { categories?: unknown; category?: unknown }): Category[] {
+  if (Array.isArray(doc.categories)) {
+    const ok = CATEGORIES.filter((c) => (doc.categories as unknown[]).includes(c));
+    if (ok.length) return ok;
+  }
+  return [doc.category === "katha" ? "katha" : "kirtan"];
+}
+
+/** "Kirtan · Bhajan": the sections as people read them. */
+export const sectionsText = (c: { categories: Category[] }): string => c.categories.map((x) => CATEGORY_LABELS[x].en).join(" · ");
+/** "कीर्तन, भजन" */
+export const sectionsHi = (c: { categories: Category[] }): string => c.categories.map((x) => CATEGORY_LABELS[x].hi).join(", ");
 
 export type Clip = {
   /** Set on a signed-in person's own video (private to them); absent on the public collection. */
@@ -26,7 +40,8 @@ export type Clip = {
   videoId: string;
   start: number;
   end: number;
-  category: Category;
+  /** One to three of Bhajan, Kirtan, Katha. */
+  categories: Category[];
   tags: string[];
   /** The source video's own YouTube title, kept for context ("Day 5 … Dhuri"). */
   videoTitle: string;
@@ -59,7 +74,10 @@ export const clipInputSchema = z
     videoId: z.string().trim().refine(isVideoId, "That isn't a YouTube video ID."),
     start: time,
     end: time,
-    category: z.preprocess((v) => (v === "kirtan" ? "bhajan" : v), z.enum(CATEGORIES, { message: "Pick Kirtan or Katha." })),
+    /** the sections (one to three of bhajan, kirtan, katha) */
+    categories: z.array(z.string()).optional(),
+    /** one section: the older way of saying it, still accepted by scripts */
+    category: z.string().optional(),
     tags: z
       .array(z.string().trim().min(1).max(40))
       .max(12)
@@ -82,7 +100,17 @@ export const clipInputSchema = z
       }),
     sample: z.boolean().default(false),
   })
-  .refine((c) => c.end > c.start, { message: "The end time must be after the start time.", path: ["end"] });
+  .refine((c) => c.end > c.start, { message: "The end time must be after the start time.", path: ["end"] })
+  .superRefine((c, ctx) => {
+    if (sectionsOf(c).length === 0) ctx.addIssue({ code: "custom", message: "Pick at least one section: Bhajan, Kirtan or Katha.", path: ["categories"] });
+  })
+  .transform(({ categories: _c, category: _o, ...rest }) => ({ ...rest, categories: sectionsOf({ categories: _c, category: _o }) }));
+
+/** What was asked for, as the sections that exist (in the usual order, no repeats). */
+function sectionsOf(c: { categories?: string[]; category?: string }): Category[] {
+  const asked = [...(c.categories ?? []), ...(c.category ? [c.category] : [])];
+  return CATEGORIES.filter((x) => asked.includes(x));
+}
 
 export type ClipInput = z.input<typeof clipInputSchema>;
 export type ClipData = z.output<typeof clipInputSchema>;

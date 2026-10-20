@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { LogOut, Pencil, Plus } from "lucide-react";
 import { LoginForm } from "@/components/admin/LoginForm";
 import { DeleteButton } from "@/components/admin/DeleteButton";
-import { CATEGORY_LABELS } from "@/lib/clip-schema";
+import { sectionsText } from "@/lib/clip-schema";
 import { groupByDate, langOf } from "@/lib/display";
 import { getAccounts } from "@/lib/accounts";
 import { isAdmin } from "@/lib/session";
@@ -130,7 +130,7 @@ async function Admin({ searchParams }: { searchParams: PageProps<"/admin">["sear
                     {c.title}
                   </Link>
                   <span className="ml-2 text-[0.8rem] uppercase tracking-[0.1em] text-mist">
-                    {CATEGORY_LABELS[c.category].en}
+                    {sectionsText(c)}
                     {c.sample ? " · sample" : ""}
                   </span>
                 </span>

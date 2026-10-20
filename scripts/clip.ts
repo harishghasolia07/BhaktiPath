@@ -1,7 +1,7 @@
 // Manage clips from the terminal.
 //
 //   npm run clip -- add --url "https://www.youtube.com/live/fH2lNOThsV0?t=1291" \
-//        --title "Radhe Radhe Japo" --start 21:31 --end 30:45 --category bhajan [--tags "Radha, Holi"]
+//        --title "Radhe Radhe Japo" --start 21:31 --end 30:45 --categories kirtan,bhajan [--tags "Radha, Holi"]
 //   npm run clip -- list
 //   npm run clip -- remove <slug>
 //   npm run clip -- export [file]          (JSON backup; Atlas's free tier has no backups)
@@ -47,7 +47,7 @@ async function refreshSite() {
 }
 
 function line(c: Clip) {
-  return `${c.category.padEnd(6)} ${`${formatTime(c.start)}-${formatTime(c.end)}`.padEnd(17)} ${c.title}  [${c.slug}]${c.sample ? " (sample)" : ""}`;
+  return `${c.categories.join("+").padEnd(13)} ${`${formatTime(c.start)}-${formatTime(c.end)}`.padEnd(17)} ${c.title}  [${c.slug}]${c.sample ? " (sample)" : ""}`;
 }
 
 async function main() {
@@ -61,7 +61,7 @@ async function main() {
       const videoId = parseVideoId(url) ?? die(`no YouTube video ID in "${url}"`);
       const start = flag("start") ?? (startFromUrl(url) !== null ? String(startFromUrl(url)) : die("--start is required"));
       const end = flag("end") ?? die("--end is required");
-      const category = (flag("category") ?? die(`--category is required (${CATEGORIES.join(" | ")})`)) as Category;
+      const categories = (flag("categories") ?? flag("category") ?? die(`--categories is required (one or more of ${CATEGORIES.join(", ")}, comma separated)`)).split(",").map((s) => s.trim()) as Category[];
       const title = flag("title") ?? die("--title is required");
       const videoTitle = flag("video-title") ?? (await fetchVideoTitle(videoId));
       try {
@@ -70,7 +70,7 @@ async function main() {
           videoId,
           start,
           end,
-          category,
+          categories,
           tags: parseTags(flag("tags") ?? ""),
           videoTitle,
           lyrics: flag("lyrics") ?? "",

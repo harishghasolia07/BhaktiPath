@@ -3,7 +3,7 @@
 import { updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { CLIPS_TAG } from "@/lib/clips";
-import { parseTags, type Category } from "@/lib/clip-schema";
+import { parseTags } from "@/lib/clip-schema";
 import { parseBulk } from "@/lib/bulk";
 import { fetchVideoTitle } from "@/lib/oembed";
 import { getAccounts } from "@/lib/accounts";
@@ -40,7 +40,7 @@ function fromForm(form: FormData) {
     videoId: parseVideoId(String(form.get("link") ?? "")) ?? "",
     start: String(form.get("start") ?? ""),
     end: String(form.get("end") ?? ""),
-    category: String(form.get("category") ?? "") as Category,
+    categories: form.getAll("categories").map(String),
     tags: parseTags(String(form.get("tags") ?? "")),
     videoTitle: String(form.get("videoTitle") ?? ""),
     lyrics: String(form.get("lyrics") ?? "").replace(/\r\n/g, "\n").trim(),
@@ -118,7 +118,7 @@ export async function approveSubmission(form: FormData) {
       videoId: v.videoId,
       start: v.start,
       end: v.end,
-      category: v.category,
+      categories: v.categories,
       tags: v.tags,
       videoTitle: v.videoTitle || (await fetchVideoTitle(v.videoId)),
       lyrics: v.lyrics,

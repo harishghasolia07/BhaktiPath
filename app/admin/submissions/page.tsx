@@ -5,7 +5,7 @@ import { Suspense } from "react";
 import { ChevronLeft, ExternalLink } from "lucide-react";
 import { getAccounts } from "@/lib/accounts";
 import { findDuplicates } from "@/lib/duplicates";
-import { CATEGORY_LABELS } from "@/lib/clip-schema";
+import { sectionsText } from "@/lib/clip-schema";
 import { langOf } from "@/lib/display";
 import { isAdmin } from "@/lib/session";
 import { getStore } from "@/lib/store";
@@ -66,7 +66,7 @@ async function List({ searchParams }: { searchParams: PageProps<"/admin/submissi
                     {v.title}
                   </h2>
                   <p className="tabular text-sandal">
-                    {CATEGORY_LABELS[v.category].en} · {formatTime(v.start)} – {formatTime(v.end)} ({formatLength(v.end - v.start)})
+                    {sectionsText(v)} · {formatTime(v.start)} – {formatTime(v.end)} ({formatLength(v.end - v.start)})
                   </p>
                   <p className="text-[0.9rem] text-mist">
                     From {by.name}

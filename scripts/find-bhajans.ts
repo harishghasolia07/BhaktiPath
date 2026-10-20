@@ -65,7 +65,7 @@ async function main() {
         videoId: id,
         start: seg.start,
         end: seg.end,
-        category: (flag("category") as "bhajan" | "katha") ?? "bhajan",
+        categories: (flag("categories") ?? "kirtan").split(",").map((s) => s.trim()),
         tags: parseTags(flag("tags") ?? ""),
         videoTitle,
       });

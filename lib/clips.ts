@@ -11,7 +11,7 @@ export async function getClips() {
   cacheTag(CLIPS_TAG);
   // Refreshes by itself within minutes, so a change made from another place that shares this database (the admin
   // page on another deployment, a script, a local copy) shows up without a redeploy. An edit made here is instant.
-  cacheLife({ stale: 60, revalidate: 300, expire: 86_400 });
+  cacheLife({ stale: 300, revalidate: 300, expire: 86_400 }); // stale under 5 min would make Next treat it as live data
   return getStore().list();
 }
 
@@ -20,6 +20,6 @@ export async function getClip(slug: string) {
   cacheTag(CLIPS_TAG);
   // Refreshes by itself within minutes, so a change made from another place that shares this database (the admin
   // page on another deployment, a script, a local copy) shows up without a redeploy. An edit made here is instant.
-  cacheLife({ stale: 60, revalidate: 300, expire: 86_400 });
+  cacheLife({ stale: 300, revalidate: 300, expire: 86_400 }); // stale under 5 min would make Next treat it as live data
   return getStore().getBySlug(slug);
 }

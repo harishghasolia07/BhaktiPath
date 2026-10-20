@@ -5,11 +5,11 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { saveBulk } from "@/app/admin/actions";
 import { parseBulk } from "@/lib/bulk";
-import { CATEGORY_LABELS } from "@/lib/clip-schema";
+import { sectionsText } from "@/lib/clip-schema";
 import { formatLength, formatTime } from "@/lib/youtube";
 
-const EXAMPLE = `https://www.youtube.com/live/fH2lNOThsV0 | Radhe Radhe Japo | 21:31 | 30:45 | bhajan
-https://www.youtube.com/live/fH2lNOThsV0?t=2700 | Hare Krishna Mahamantra | 52:30 | bhajan`;
+const EXAMPLE = `https://www.youtube.com/live/fH2lNOThsV0 | Radhe Radhe Japo | 21:31 | 30:45 | kirtan + bhajan
+https://www.youtube.com/live/fH2lNOThsV0?t=2700 | Hare Krishna Mahamantra | 52:30 | kirtan`;
 
 export function BulkEditor() {
   const [text, setText] = useState("");
@@ -30,7 +30,7 @@ export function BulkEditor() {
       <label className="flex flex-col gap-2">
         <span className="font-semibold text-sandal">One clip per line</span>
         <span className="text-[0.95rem] text-mist">
-          <code className="font-sans text-sandal">link | name | start | end | section</code>. The section can be left out (bhajan); when the link has{" "}
+          <code className="font-sans text-sandal">link | name | start | end | section</code>. The section can be left out (kirtan), or name several, like <code className="font-sans text-sandal">kirtan + bhajan</code>; when the link has{" "}
           <code className="font-sans text-sandal">?t=</code>, start can be left out too: <code className="font-sans text-sandal">link | name | end | section</code>.
           Lines starting with # are ignored.
         </span>
@@ -66,7 +66,7 @@ export function BulkEditor() {
                   <td className="tabular px-3 py-2 text-gold">
                     {r.clip ? `${formatTime(r.clip.start)} – ${formatTime(r.clip.end)} (${formatLength(r.clip.end - r.clip.start)})` : ""}
                   </td>
-                  <td className="px-3 py-2 text-sandal">{r.clip ? CATEGORY_LABELS[r.clip.category].en : ""}</td>
+                  <td className="px-3 py-2 text-sandal">{r.clip ? sectionsText(r.clip) : ""}</td>
                   <td className={`px-3 py-2 ${r.error ? "text-marigold" : "text-sandal"}`}>{r.error ?? "OK"}</td>
                 </tr>
               ))}

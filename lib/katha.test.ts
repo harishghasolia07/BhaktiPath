@@ -71,7 +71,7 @@ describe("kathaOf overrides", () => {
 
 describe("kathaQueue", () => {
   const mk = (slug: string, videoTitle: string, start: number, category = "bhajan") =>
-    ({ slug, videoId: slug.padEnd(11, "x"), videoTitle, start, end: start + 60, createdAt: "2026-10-01", title: slug, tags: [], category }) as unknown as Clip;
+    ({ slug, videoId: slug.padEnd(11, "x"), videoTitle, start, end: start + 60, createdAt: "2026-10-01", title: slug, tags: [], categories: [category] }) as unknown as Clip;
   const dhuri = (d: number) => T(d, "Shrimad Bhagwat Katha", "Dhuri - P.B 2026");
   const sikar = (d: number) => T(d, "Shrimad Bhagwat Katha", "Sikar - RJ 2026");
   const clips = [

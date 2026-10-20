@@ -5,7 +5,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { MongoClient, ObjectId, type Collection, type Db } from "mongodb";
-import { clipInputSchema, makeSlug, normCategory, type Clip, type ClipData, type ClipInput } from "./clip-schema";
+import { catsOf, clipInputSchema, makeSlug, type Clip, type ClipData, type ClipInput } from "./clip-schema";
 
 export interface ClipStore {
   readonly kind: "mongodb" | "file";
@@ -92,7 +92,7 @@ function fromDoc(d: ClipDoc): Clip {
     videoId: d.videoId,
     start: d.start,
     end: d.end,
-    category: normCategory(d.category),
+    categories: catsOf(d as { categories?: unknown; category?: unknown }), // older clips only have `category`
     tags: d.tags ?? [],
     videoTitle: d.videoTitle ?? "",
     lyrics: d.lyrics ?? "",
@@ -189,7 +189,7 @@ function fileStore(): ClipStore {
   const withDefaults = (list: Clip[]): Clip[] =>
     list.map(
       (c) =>
-        ({ ...c, category: normCategory(c.category), lyrics: c.lyrics ?? "", place: c.place ?? "", day: c.day ?? null, tags: c.tags ?? [], videoTitle: c.videoTitle ?? "", sample: c.sample ?? false }) as Clip,
+        ({ ...c, categories: catsOf(c as unknown as { categories?: unknown; category?: unknown }), lyrics: c.lyrics ?? "", place: c.place ?? "", day: c.day ?? null, tags: c.tags ?? [], videoTitle: c.videoTitle ?? "", sample: c.sample ?? false }) as Clip,
     );
   async function read(): Promise<Clip[]> {
     try {

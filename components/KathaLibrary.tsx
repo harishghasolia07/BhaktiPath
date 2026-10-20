@@ -74,7 +74,7 @@ export function KathaLibrary({ clips }: { clips: Clip[] }) {
             : clips; // everything, newest first
     return pool
       .filter((c): c is Clip => Boolean(c))
-      .filter((c) => (section === "all" || c.category === section) && matchesQuery(`${c.title} ${c.tags.join(" ")}`, q))
+      .filter((c) => (section === "all" || c.categories.includes(section)) && matchesQuery(`${c.title} ${c.tags.join(" ")}`, q))
       .map((c) => ({ c }));
   })();
 

@@ -3,7 +3,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { ObjectId, type Db } from "mongodb";
-import { normCategory, type Clip, type ClipInput } from "./clip-schema";
+import { catsOf, type Clip, type ClipInput } from "./clip-schema";
 import { PLAYLIST_LIMITS, type Playlist } from "./playlists";
 import { nextSubmission, type Submission } from "./submission";
 import { ClipValidationError, getMongoDb, validateClip } from "./store";
@@ -95,7 +95,7 @@ const toClip = (r: VideoRow): Clip => ({
   videoId: r.videoId,
   start: r.start,
   end: r.end,
-  category: normCategory(r.category),
+  categories: catsOf(r as unknown as { categories?: unknown; category?: unknown }), // older videos only have `category`
   tags: r.tags ?? [],
   videoTitle: r.videoTitle ?? "",
   lyrics: r.lyrics ?? "",

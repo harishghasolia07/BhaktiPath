@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { getAccounts } from "@/lib/accounts";
-import { parseTags, type Category } from "@/lib/clip-schema";
+import { parseTags } from "@/lib/clip-schema";
 import { fetchVideoLength, fetchVideoTitle } from "@/lib/oembed";
 import { findRepeat } from "@/lib/duplicates";
 import { ClipValidationError, getStore } from "@/lib/store";
@@ -10,7 +10,7 @@ import { currentUser } from "@/lib/user-session";
 import { parseTime, parseVideoId } from "@/lib/youtube";
 
 /** What was typed, sent back so the form keeps it after a warning or an error. */
-export type FormValues = Partial<Record<"link" | "title" | "start" | "end" | "category" | "tags" | "lyrics" | "visibility", string>>;
+export type FormValues = Partial<Record<"link" | "title" | "start" | "end" | "categories" | "tags" | "lyrics" | "visibility", string>>;
 export type MyState =
   | {
       error?: string;
@@ -33,7 +33,7 @@ async function requireUser() {
 export async function addMyVideo(_: MyState, form: FormData): Promise<MyState> {
   const user = await requireUser();
   const values: FormValues = Object.fromEntries(
-    (["link", "title", "start", "end", "category", "tags", "lyrics", "visibility"] as const).map((k) => [k, String(form.get(k) ?? "")]),
+    (["link", "title", "start", "end", "categories", "tags", "lyrics", "visibility"] as const).map((k) => [k, k === "categories" ? form.getAll(k).map(String).join(",") : String(form.get(k) ?? "")]),
   );
   const videoId = parseVideoId(String(form.get("link") ?? ""));
   if (!videoId) return { error: "Please fix the marked fields.", fields: { link: "That link doesn't contain a YouTube video." }, values };
@@ -74,7 +74,7 @@ export async function addMyVideo(_: MyState, form: FormData): Promise<MyState> {
       videoId,
       start,
       end,
-      category: (String(form.get("category") ?? "bhajan") as Category) || "bhajan",
+      categories: form.getAll("categories").map(String),
       tags: parseTags(String(form.get("tags") ?? "")),
       videoTitle,
       lyrics: String(form.get("lyrics") ?? "").replace(/\r\n/g, "\n").trim(),
@@ -99,7 +99,7 @@ export async function saveMyVideo(_: MyState, form: FormData): Promise<MyState> 
       videoId: old.videoId, // the video itself can't be swapped; add a new one instead
       start: String(form.get("start") ?? ""),
       end: String(form.get("end") ?? ""),
-      category: String(form.get("category") ?? "") as Category,
+      categories: form.getAll("categories").map(String),
       tags: parseTags(String(form.get("tags") ?? "")),
       videoTitle: old.videoTitle,
       lyrics: String(form.get("lyrics") ?? "").replace(/\r\n/g, "\n").trim(),

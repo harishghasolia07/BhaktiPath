@@ -19,6 +19,7 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { parseNotes } from "../lib/addnotes";
 import { findDuplicates, type Dupable } from "../lib/duplicates";
+import type { Category } from "../lib/clip-schema";
 import { evidenceFor, guessEnd, singingResumes, type Heard } from "../lib/evidence";
 import { makeLyrics } from "../lib/make-lyrics";
 import { fetchVideoTitle } from "../lib/oembed";
@@ -46,7 +47,8 @@ type PlanClip = {
   mix: boolean;
   /** what the notes said, for reference */
   given: string;
-  category: "bhajan" | "katha";
+  /** one to three of bhajan, kirtan, katha (edit in the plan before saving) */
+  categories: Category[];
   /** things to look at; saving is stopped while there are problems */
   problems: string[];
   warnings: string[];
@@ -115,7 +117,7 @@ async function plan(notesPath: string, direct: boolean) {
         title,
         mix: n.mix,
         given: n.name,
-        category: "bhajan",
+        categories: ["kirtan"],
         problems,
         warnings,
         duplicates,
@@ -165,7 +167,7 @@ async function save(file: string) {
     const dups = findDuplicates({ videoId: c.videoId, start: c.start, end: c.end, title: c.title }, [...existing, ...fresh]);
     if (dups.length && !c.allowDuplicate) return void skippedDup.push(`${label}: already there (${dups[0].reason}: "${dups[0].with.title}")`);
     try {
-      validateClip({ title: c.title, videoId: c.videoId, start: c.start, end: c.end, category: c.category, videoTitle: c.videoTitle });
+      validateClip({ title: c.title, videoId: c.videoId, start: c.start, end: c.end, categories: c.categories, videoTitle: c.videoTitle });
     } catch (err) {
       return void stop.push(`${label}: ${err instanceof ClipValidationError ? Object.values(err.issues).join(" ") : (err as Error).message}`);
     }
@@ -178,7 +180,7 @@ async function save(file: string) {
   console.log(`store: ${store.kind} | before: ${existing.length} clips`);
   const added = [];
   for (const c of toSave) {
-    const made = await store.create({ title: c.title, videoId: c.videoId, start: c.start!, end: c.end!, category: c.category, videoTitle: c.videoTitle });
+    const made = await store.create({ title: c.title, videoId: c.videoId, start: c.start!, end: c.end!, categories: c.categories, videoTitle: c.videoTitle });
     added.push(made);
     console.log(`+ ${`${formatTime(made.start)}–${formatTime(made.end)}`.padEnd(17)} ${made.title}  [${made.slug}]`);
   }

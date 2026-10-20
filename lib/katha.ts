@@ -147,7 +147,7 @@ export function dayRange(days: number[]): string {
  * callers take what comes after it, wrapping round to the start.
  */
 export function kathaQueue(clips: Clip[], current: Clip): Clip[] {
-  const same = clips.filter((c) => c.category === current.category);
+  const same = clips.filter((c) => c.categories.some((x) => current.categories.includes(x))); // shares a section
   const pool = same.some((c) => c.slug === current.slug) ? same : [current, ...same];
   const mine = kathaKey(kathaOf(current), current.videoId);
   const kathas = groupByKatha(pool);

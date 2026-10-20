@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { CATEGORY_LABELS, type Clip } from "@/lib/clip-schema";
+import { sectionsText, type Clip } from "@/lib/clip-schema";
 import { clipHref, langOf } from "@/lib/display";
 import { requestAutoplay, useIsNew } from "@/lib/local";
 import { formatLength, thumbnailUrl } from "@/lib/youtube";
@@ -43,7 +43,7 @@ export function ClipCard({ clip, lit }: { clip: Clip; lit: boolean }) {
             {clip.title}
           </span>
           <span className="mt-1 block text-[0.78rem] font-semibold uppercase tracking-[0.1em] text-mist">
-            {CATEGORY_LABELS[clip.category].en} · {formatLength(clip.end - clip.start)}
+            {sectionsText(clip)} · {formatLength(clip.end - clip.start)}
             {lit ? " · played" : ""}
             {clip.sample ? " · sample" : ""}
           </span>

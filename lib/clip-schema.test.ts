@@ -1,16 +1,32 @@
 import { describe, expect, it } from "vitest";
-import { clipInputSchema, makeSlug, normCategory, parseTags } from "./clip-schema";
+import { catsOf, clipInputSchema, makeSlug, parseTags, sectionsText } from "./clip-schema";
 import { groupByVideo, langOf, sourceLabel } from "./display";
 import type { Clip } from "./clip-schema";
 
-const base = { title: "Radhe Radhe Japo", videoId: "fH2lNOThsV0", start: "21:31", end: "30:45", category: "bhajan" };
+const base = { title: "Radhe Radhe Japo", videoId: "fH2lNOThsV0", start: "21:31", end: "30:45", categories: ["kirtan"] };
 
 describe("sections", () => {
-  it("has two sections: a kirtan is a bhajan", () => {
-    expect(clipInputSchema.parse({ ...base, category: "kirtan" }).category).toBe("bhajan");
-    expect(clipInputSchema.parse({ ...base, category: "katha" }).category).toBe("katha");
-    expect(clipInputSchema.safeParse({ ...base, category: "other" }).success).toBe(false);
-    expect(["kirtan", "bhajan", undefined, "katha"].map(normCategory)).toEqual(["bhajan", "bhajan", "bhajan", "katha"]);
+  it("a clip is in one, two or three sections, kept in the usual order without repeats", () => {
+    expect(clipInputSchema.parse({ ...base, categories: ["kirtan"] }).categories).toEqual(["kirtan"]);
+    expect(clipInputSchema.parse({ ...base, categories: ["katha", "kirtan", "kirtan"] }).categories).toEqual(["kirtan", "katha"]);
+    expect(clipInputSchema.parse({ ...base, categories: ["katha", "kirtan", "bhajan"] }).categories).toEqual(["bhajan", "kirtan", "katha"]);
+  });
+  it("still takes the older single `category`", () => {
+    const { categories: _c, ...noCats } = base;
+    expect(clipInputSchema.parse({ ...noCats, category: "katha" }).categories).toEqual(["katha"]);
+  });
+  it("needs at least one real section", () => {
+    const r = clipInputSchema.safeParse({ ...base, categories: [] });
+    expect(r.success).toBe(false);
+    expect(r.error?.issues[0].path).toEqual(["categories"]);
+    expect(clipInputSchema.safeParse({ ...base, categories: ["film"] }).success).toBe(false);
+  });
+  it("reads clips saved before: their 'bhajan' and 'kirtan' are Kirtan", () => {
+    expect([{ category: "bhajan" }, { category: "kirtan" }, { category: "katha" }, {}].map(catsOf)).toEqual([["kirtan"], ["kirtan"], ["katha"], ["kirtan"]]);
+    expect(catsOf({ categories: ["katha", "bhajan"], category: "bhajan" })).toEqual(["bhajan", "katha"]);
+  });
+  it("names the sections for people", () => {
+    expect(sectionsText({ categories: ["bhajan", "kirtan"] })).toBe("Bhajan · Kirtan");
   });
 });
 
@@ -27,7 +43,7 @@ describe("clipInputSchema", () => {
   it("rejects a bad ID, time and section", () => {
     expect(clipInputSchema.safeParse({ ...base, videoId: "nope" }).success).toBe(false);
     expect(clipInputSchema.safeParse({ ...base, start: "21:61" }).success).toBe(false);
-    expect(clipInputSchema.safeParse({ ...base, category: "film" }).success).toBe(false);
+    expect(clipInputSchema.safeParse({ ...base, categories: ["film"] }).success).toBe(false);
     expect(clipInputSchema.safeParse({ ...base, title: "   " }).success).toBe(false);
   });
   it("dedupes tags", () => {

@@ -4,7 +4,8 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ChevronLeft, Flag, Play, SkipForward } from "lucide-react";
 import { lookupVideo, saveClip } from "@/app/admin/actions";
-import { CATEGORIES, CATEGORY_LABELS, type Clip } from "@/lib/clip-schema";
+import type { Clip } from "@/lib/clip-schema";
+import { SectionPicker } from "../SectionPicker";
 import { formatLength, formatTime, parseTime, parseVideoId, startFromUrl } from "@/lib/youtube";
 import { findDuplicates } from "@/lib/duplicates";
 import { loadYouTubeApi, type YTPlayer } from "@/lib/yt-player";
@@ -173,19 +174,7 @@ export function ClipEditor({ clip, existing = [] }: { clip?: Clip; existing?: Ex
             {err.title && <span className="text-[0.9rem] text-marigold">{err.title}</span>}
           </label>
 
-          <fieldset className="flex flex-col gap-1.5">
-            <legend className="mb-1.5 font-semibold text-sandal">Section</legend>
-            <div className="flex flex-wrap gap-2">
-              {CATEGORIES.map((c) => (
-                <label key={c} className="cursor-pointer">
-                  <input type="radio" name="category" value={c} defaultChecked={(clip?.category ?? "bhajan") === c} className="peer sr-only" />
-                  <span className="flex h-11 items-center rounded-full border border-gold/40 px-5 font-semibold text-sandal peer-checked:border-gold peer-checked:bg-gold peer-checked:text-shyam peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-marigold">
-                    {CATEGORY_LABELS[c].en}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </fieldset>
+          <SectionPicker value={clip?.categories ?? ["kirtan"]} error={err.categories} />
 
           <div className="grid grid-cols-2 gap-3">
             {(["start", "end"] as const).map((which) => (

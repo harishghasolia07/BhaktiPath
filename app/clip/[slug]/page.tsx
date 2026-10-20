@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { ClipStage } from "@/components/ClipStage";
 import { getClip, getClips } from "@/lib/clips";
 import { getStore } from "@/lib/store";
-import { CATEGORY_LABELS } from "@/lib/clip-schema";
+import { CATEGORY_LABELS, sectionsText } from "@/lib/clip-schema";
 import { kathaQueue } from "@/lib/katha";
 import { formatLength, thumbnailUrl } from "@/lib/youtube";
 
@@ -23,7 +23,7 @@ export async function generateMetadata({ params }: PageProps<"/clip/[slug]">): P
   const { slug } = await params;
   const clip = await findClip(slug);
   if (!clip) return { title: "Clip not found" };
-  const description = `${CATEGORY_LABELS[clip.category].en} · ${formatLength(clip.end - clip.start)} · Pujya Shri Indresh Upadhyay Ji Maharaj`;
+  const description = `${sectionsText(clip)} · ${formatLength(clip.end - clip.start)} · Pujya Shri Indresh Upadhyay Ji Maharaj`;
   const image = { url: thumbnailUrl(clip.videoId, "hq"), width: 480, height: 360, alt: clip.title };
   return {
     title: clip.title,
@@ -58,7 +58,7 @@ async function Stage({ params, search }: { params: PageProps<"/clip/[slug]">["pa
       key={clip.slug}
       queue={kathaQueue(clips, clip)}
       initialSlug={clip.slug}
-      queueLabel={`Next in ${CATEGORY_LABELS[clip.category].en}`}
+      queueLabel={`Next in ${CATEGORY_LABELS[clip.categories[0]].en}`}
     />
   );
 }

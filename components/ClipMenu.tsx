@@ -3,15 +3,18 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { ChevronLeft, Check, ListEnd, ListPlus, ListVideo, MoreHorizontal, Plus } from "lucide-react";
+import { ChevronLeft, Check, ListEnd, ListPlus, ListVideo, MoreHorizontal, Plus, Share2 } from "lucide-react";
 import { addToPlaylist, createPlaylist, removeFromPlaylist } from "@/app/playlists/actions";
 import { refreshAccount, useAccount } from "@/lib/account-client";
 import type { Clip } from "@/lib/clip-schema";
 import { langOf } from "@/lib/display";
 import { usePlayer } from "./PlayerProvider";
 
-/** The "⋯" menu on a bhajan: play it next, add it to the queue, or put it in one of your playlists. */
-export function ClipMenu({ clip, className = "" }: { clip: Clip; className?: string }) {
+/**
+ * The "⋯" menu on a bhajan: play it next, add it to the queue, or put it in one of your playlists.
+ * With `onShare`, phones also get a Share item (bigger screens show Share as its own button).
+ */
+export function ClipMenu({ clip, className = "", onShare }: { clip: Clip; className?: string; onShare?: () => void }) {
   const [anchor, setAnchor] = useState<HTMLButtonElement | null>(null);
   const [view, setView] = useState<"main" | "lists">("main");
   const menu = useRef<HTMLDivElement>(null);
@@ -51,7 +54,7 @@ export function ClipMenu({ clip, className = "" }: { clip: Clip; className?: str
       >
         <MoreHorizontal className="size-5" aria-hidden="true" />
       </button>
-      {anchor && createPortal(<MenuBody anchor={anchor} clip={clip} view={view} setView={setView} close={() => (setAnchor(null), setView("main"))} menuRef={menu} />, document.body)}
+      {anchor && createPortal(<MenuBody anchor={anchor} clip={clip} onShare={onShare} view={view} setView={setView} close={() => (setAnchor(null), setView("main"))} menuRef={menu} />, document.body)}
     </>
   );
 }
@@ -59,6 +62,7 @@ export function ClipMenu({ clip, className = "" }: { clip: Clip; className?: str
 function MenuBody({
   anchor,
   clip,
+  onShare,
   view,
   setView,
   close,
@@ -66,6 +70,7 @@ function MenuBody({
 }: {
   anchor: HTMLElement;
   clip: Clip;
+  onShare?: () => void;
   view: "main" | "lists";
   setView: (v: "main" | "lists") => void;
   close: () => void;
@@ -141,6 +146,11 @@ function MenuBody({
           <button role="menuitem" className={item} onClick={() => setView("lists")}>
             <ListPlus className="size-[18px] text-gold" aria-hidden="true" /> Add to playlist…
           </button>
+          {sheet && onShare && (
+            <button role="menuitem" className={item} onClick={() => (close(), onShare())}>
+              <Share2 className="size-[18px] text-gold" aria-hidden="true" /> Share
+            </button>
+          )}
         </>
       ) : (
         <>

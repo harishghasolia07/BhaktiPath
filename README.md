@@ -36,7 +36,7 @@ npm run find -- <link> --gap 120 --min 90                            # tune: pau
 
 ```bash
 npm run clip -- add --url "https://www.youtube.com/live/fH2lNOThsV0?t=1291" \
-  --title "Radhe Radhe Japo" --end 30:45 --category bhajan --tags "Radha" [--lyrics "..."] [--place Sikar --day 5]
+  --title "Radhe Radhe Japo" --end 30:45 --categories kirtan,bhajan --tags "Radha" [--lyrics "..."] [--place Sikar --day 5]
 npm run clip -- list
 npm run clip -- remove <slug>
 npm run clip -- export            # JSON backup (also: Download backup in /admin)
@@ -125,7 +125,8 @@ day 1 - https://www.youtube.com/watch?v=XXXXXXXXXXX
    finds a missing end from the captions (a missing start can't be guessed: ask the owner), prints what is sung at the start,
    the end and (for mixes) all through the range, warns about a range that starts or ends in speaking, and flags clips that
    are already in the collection (same video, overlapping or within a minute). The plan is written to `.data/add-plan.json`.
-2. Correct the titles in the plan from what the captions say (spelling, grammar). For a mix, list the bhajans heard in the
+2. Correct the titles in the plan from what the captions say (spelling, grammar). Each clip's `categories` starts as
+   `["kirtan"]`; set it to any of `bhajan`, `kirtan`, `katha` (one or more) if the owner says so. For a mix, list the bhajans heard in the
    range; if they can't be told apart, keep the owner's names. Set `allowDuplicate` / `skip` where needed.
 3. `npm run add-videos -- save` saves them to the database and refreshes the live site (and a local dev server).
    `--direct` on `plan` saves straight away when there are no problems and no duplicates.

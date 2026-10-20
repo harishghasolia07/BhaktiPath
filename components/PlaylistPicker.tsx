@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { Check, Plus, Search, X } from "lucide-react";
 import { addToPlaylist, removeFromPlaylist } from "@/app/playlists/actions";
 import { refreshAccount, useAccount } from "@/lib/account-client";
-import { CATEGORY_LABELS, type Clip } from "@/lib/clip-schema";
+import { sectionsText, type Clip } from "@/lib/clip-schema";
 import { langOf } from "@/lib/display";
 import { matchesQuery } from "@/lib/translit";
 import { formatLength, thumbnailUrl } from "@/lib/youtube";
@@ -104,7 +104,7 @@ export function PlaylistPicker({ playlistId, name, clips, onClose, onChanged }: 
                       {c.title}
                     </span>
                     <span className="tabular text-[0.78rem] font-semibold uppercase tracking-[0.1em] text-mist">
-                      {CATEGORY_LABELS[c.category].en} · {formatLength(c.end - c.start)}
+                      {sectionsText(c)} · {formatLength(c.end - c.start)}
                       {c.owner ? " · yours" : ""}
                     </span>
                   </span>

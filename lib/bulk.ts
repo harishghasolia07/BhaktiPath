@@ -13,8 +13,8 @@ export type BulkRow = {
 };
 
 const SECTIONS: Record<string, string> = {
-  bhajan: "bhajan", "भजन": "bhajan", b: "bhajan", // all mean the Kirtan section (saved as "bhajan")
-  kirtan: "bhajan", "कीर्तन": "bhajan", k: "bhajan", // a kirtan is a bhajan
+  bhajan: "bhajan", "भजन": "bhajan", b: "bhajan",
+  kirtan: "kirtan", "कीर्तन": "kirtan", k: "kirtan",
   katha: "katha", "कथा": "katha",
 };
 
@@ -41,13 +41,15 @@ export function parseBulk(text: string): BulkRow[] {
     const withStart = parts.length >= 4;
     const start = withStart ? parts[2] : fromLink !== null ? String(fromLink) : "";
     const end = withStart ? parts[3] : parts[2];
-    const sectionText = (withStart ? parts[4] : parts[3]) ?? "bhajan";
-    const category = SECTIONS[sectionText.toLowerCase()] ?? SECTIONS[sectionText];
-    if (!category) {
-      row.error = `Section “${sectionText}” should be bhajan or katha.`;
+    // one section or several: "kirtan", "kirtan + bhajan", "katha, kirtan"; none given means kirtan
+    const sectionText = (withStart ? parts[4] : parts[3]) || "kirtan";
+    const words = sectionText.split(/[+,&/]/).map((w) => w.trim()).filter(Boolean);
+    const categories = words.map((w) => SECTIONS[w.toLowerCase()] ?? SECTIONS[w]);
+    if (!words.length || categories.some((c) => !c)) {
+      row.error = `Section “${sectionText}” should be bhajan, kirtan or katha (or several, like “kirtan + bhajan”).`;
       return;
     }
-    const r = clipInputSchema.safeParse({ title, videoId, start, end, category });
+    const r = clipInputSchema.safeParse({ title, videoId, start, end, categories });
     if (r.success) row.clip = r.data;
     else row.error = r.error.issues[0]?.message ?? "Invalid line.";
   });

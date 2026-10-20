@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import { ExternalLink, ListMusic, Moon, Pause, Play, Repeat, Repeat1, RotateCcw, Settings, Share2 } from "lucide-react";
 import type { Clip } from "@/lib/clip-schema";
-import { CATEGORY_LABELS } from "@/lib/clip-schema";
+import { sectionsHi, sectionsText } from "@/lib/clip-schema";
 import { clipHref, langOf } from "@/lib/display";
 import { takeAutoplay, usePlayed, usePref } from "@/lib/local";
 import { formatLength, formatTime, thumbnailUrl, youtubeAtUrl } from "@/lib/youtube";
@@ -151,7 +151,6 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
     };
   });
 
-  const cat = CATEGORY_LABELS[clip.category];
   const synced = useSyncedLyrics(clip.slug, !clip.owner);
   const hasSynced = Boolean(synced && synced.length);
   const hasLyrics = hasSynced || Boolean(clip.lyrics);
@@ -211,7 +210,7 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
           <span className="tabular min-w-[5.5rem] text-right text-[0.95rem] text-sandal">
             {formatTime(labelTime)} / {formatTime(length)}
           </span>
-          <div className="flex flex-wrap items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5 max-[379px]:gap-1">
             <button
               type="button"
               onClick={togglePlay}
@@ -240,7 +239,7 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
               title="Playback speed"
               aria-label={`Playback speed ${p.rate}×. Tap to change`}
               onClick={p.cycleRate}
-              className="tabular grid h-11 min-w-11 place-items-center rounded-full border border-gold/35 px-2 text-[0.85rem] font-semibold text-sandal transition-colors hover:border-gold hover:text-ivory aria-pressed:border-marigold aria-pressed:text-marigold"
+              className="tabular grid h-11 min-w-11 place-items-center max-[379px]:h-10 max-[379px]:min-w-10 rounded-full border border-gold/35 px-2 text-[0.85rem] font-semibold text-sandal transition-colors hover:border-gold hover:text-ivory aria-pressed:border-marigold aria-pressed:text-marigold"
               aria-pressed={p.rate !== 1}
             >
               {p.rate}×
@@ -262,12 +261,13 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
               </IconToggle>
               {sleepMenu && <SleepMenu anchor={sleepMenu} sleep={sleep} onPick={startSleep} />}
             </div>
+            {/* phones: Share lives in the ⋯ menu so the controls stay on one row */}
             {!clip.owner && (
-              <IconToggle label="Share this bhajan" onClick={share}>
+              <IconToggle label="Share this bhajan" onClick={share} className="max-sm:hidden">
                 <Share2 className="size-[18px]" aria-hidden="true" />
               </IconToggle>
             )}
-            <ClipMenu clip={clip} className="size-11 border border-gold/35 hover:border-gold" />
+            <ClipMenu clip={clip} onShare={clip.owner ? undefined : share} className="size-11 max-[379px]:size-10 border border-gold/35 hover:border-gold" />
           </div>
         </div>
         <a
@@ -293,7 +293,7 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
           <p className="text-sandal">
             <span className="tabular whitespace-nowrap text-gold">{formatLength(length)}</span> ·{" "}
             <span className="whitespace-nowrap">
-              {cat.en} <span lang="hi">({cat.hi})</span>
+              {sectionsText(clip)} <span lang="hi">({sectionsHi(clip)})</span>
             </span>
           </p>
           {clip.owner && (
@@ -400,7 +400,7 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
                         <span lang={langOf(c.title)} className="block font-serif text-[1.05rem] leading-snug text-pretty text-ivory">
                           {c.title}
                         </span>
-                        <span className="block text-[0.85rem] text-mist">{CATEGORY_LABELS[c.category].en}</span>
+                        <span className="block text-[0.85rem] text-mist">{sectionsText(c)}</span>
                       </span>
                       <span className="tabular text-[0.85rem] text-mist">{formatLength(c.end - c.start)}</span>
                     </Link>
@@ -436,12 +436,14 @@ function IconToggle({
   expanded,
   onClick,
   children,
+  className = "",
 }: {
   label: string;
   pressed?: boolean;
   expanded?: boolean;
   onClick: (e: React.MouseEvent<HTMLButtonElement>) => void;
   children: React.ReactNode;
+  className?: string;
 }) {
   return (
     <button
@@ -452,7 +454,7 @@ function IconToggle({
       aria-haspopup={expanded === undefined ? undefined : "menu"}
       aria-expanded={expanded}
       onClick={onClick}
-      className="grid size-11 place-items-center rounded-full border border-gold/35 text-sandal transition-colors hover:border-gold hover:text-ivory aria-pressed:border-marigold aria-pressed:bg-marigold/15 aria-pressed:text-marigold"
+      className={`grid size-11 place-items-center rounded-full border border-gold/35 text-sandal max-[379px]:size-10 transition-colors hover:border-gold hover:text-ivory aria-pressed:border-marigold aria-pressed:bg-marigold/15 aria-pressed:text-marigold ${className}`}
     >
       {children}
     </button>

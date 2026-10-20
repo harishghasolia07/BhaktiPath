@@ -13,7 +13,7 @@ import { formatLength } from "@/lib/youtube";
 
 /** A bhajan for today (India time): the same all day, a different one tomorrow. */
 function bhajanOfTheDay(clips: Clip[]): Clip | undefined {
-  const sung = clips.filter((c) => c.category !== "katha");
+  const sung = clips.filter((c) => c.categories.some((x) => x !== "katha")); // sung: a bhajan or kirtan
   const pool = sung.length ? sung : clips;
   const istDay = Math.floor((Date.now() + 5.5 * 3600_000) / 86_400_000);
   return pool[istDay % pool.length];
