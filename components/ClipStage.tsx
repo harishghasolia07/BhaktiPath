@@ -270,15 +270,6 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
             <ClipMenu clip={clip} onShare={clip.owner ? undefined : share} className="size-11 max-[379px]:size-10 border border-gold/35 hover:border-gold" />
           </div>
         </div>
-        <a
-          className="inline-flex items-center gap-2 rounded-full border border-gold/50 px-4 py-2.5 text-[0.95rem] text-ivory no-underline hover:border-gold lg:hidden"
-          href={youtubeAtUrl(clip.videoId, clip.start)}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Listen with the screen off: open in YouTube
-          <ExternalLink className="size-4" aria-hidden="true" />
-        </a>
       </div>
 
       {/* ---------- what is playing, and what follows ---------- */}
