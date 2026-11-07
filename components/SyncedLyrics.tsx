@@ -59,14 +59,15 @@ export function SyncedLyrics({
   const [following, setFollowing] = useState(true);
   const idx = live ? activeLine(lines, now) : -1;
 
-  // keep the current line a little above the middle of the box
+  // Keep the current line just under the top of the box: one sung line stays in view above it, and the
+  // upcoming lines fill the space below, so the singing is visible instead of sinking to the bottom edge.
   useEffect(() => {
     const el = box.current;
     if (!el || idx < 0 || !following) return;
     const line = el.querySelector<HTMLElement>(`[data-line="${idx}"]`);
     if (!line) return;
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    el.scrollTo({ top: line.offsetTop - el.clientHeight * 0.38, behavior: reduce ? "auto" : "smooth" });
+    el.scrollTo({ top: line.offsetTop - el.clientHeight * 0.27, behavior: reduce ? "auto" : "smooth" });
   }, [idx, following]);
 
   // after a hand scroll, follow again on its own after 5 seconds
