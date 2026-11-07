@@ -147,11 +147,14 @@ export function useRepeat(): [Repeat, () => void] {
   return [readRepeat(raw || null, legacy || null), cycle];
 }
 
-/** Playback speed (1, 1.25, 1.5 or 0.75) and a button-style cycle. */
-export function useSpeed(): [number, () => void] {
+/** Playback speed (YouTube's 0.25× to 2×) and a way to cycle it or set one. */
+export function useSpeed(): [number, (v?: number) => void] {
   const raw = useSyncExternalStore(subscribe, () => read("sk:speed") ?? "", () => "");
-  const cycle = useCallback(() => write("sk:speed", String(nextSpeed(readSpeed(read("sk:speed"))))), []);
-  return [readSpeed(raw || null), cycle];
+  const set = useCallback((v?: number) => {
+    const next = v === undefined ? nextSpeed(readSpeed(read("sk:speed"))) : readSpeed(String(v));
+    write("sk:speed", String(next));
+  }, []);
+  return [readSpeed(raw || null), set];
 }
 
 export function usePref(key: "loop" | "autonext", fallback: boolean): [boolean, (v: boolean) => void] {

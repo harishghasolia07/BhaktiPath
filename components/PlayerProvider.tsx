@@ -31,10 +31,12 @@ type Player = {
   ended: boolean;
   sleep: Sleep;
   repeat: Repeat;
-  /** 1, 1.25, 1.5 or 0.75 */
+  /** one of YouTube's speeds, 0.25× to 2× */
   rate: number;
   cycleRepeat(): void;
   cycleRate(): void;
+  /** set a speed directly (the ⋯ menu's list); 1 for normal */
+  setRate(rate: number): void;
   /** play this one right after the current bhajan (or start it, if nothing is playing) */
   playNext(clip: Clip): void;
   /** put this one at the end of the queue (or start it, if nothing is playing) */
@@ -78,7 +80,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const [toast, setToast] = useState<string | null>(null);
   const [slot, setSlot] = useState<{ el: HTMLElement; owner: string } | null>(null);
   const [repeat, cycleRepeat] = useRepeat();
-  const [rate, cycleRate] = useSpeed();
+  const [rate, setSpeed] = useSpeed();
   const [autoNext] = usePref("autonext", true);
 
   const dock = useRef<HTMLDivElement>(null);
@@ -355,7 +357,8 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     repeat,
     rate,
     cycleRepeat,
-    cycleRate,
+    cycleRate: () => setSpeed(),
+    setRate: setSpeed,
     playNext,
     addToQueue,
     play,

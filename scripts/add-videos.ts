@@ -20,11 +20,13 @@ import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "
 import { parseNotes } from "../lib/addnotes";
 import { findDuplicates, type Dupable } from "../lib/duplicates";
 import type { Category } from "../lib/clip-schema";
-import { evidenceFor, guessEnd, singingResumes, type Heard } from "../lib/evidence";
+import { evidenceFor, guessEnd, linesBetween, singingResumes, type Heard } from "../lib/evidence";
 import { makeLyrics } from "../lib/make-lyrics";
 import { fetchVideoTitle } from "../lib/oembed";
 import { ClipValidationError, getStore, validateClip } from "../lib/store";
 import { tidyTitle } from "../lib/tidy";
+import { matchesQuery } from "../lib/translit";
+import { toLatin } from "../lib/devanagari";
 import { fetchCaptions } from "../lib/ytdlp";
 import { formatLength, formatTime } from "../lib/youtube";
 
@@ -60,7 +62,10 @@ type PlanClip = {
   heard: { first: string[]; last: string[]; samples: string[] };
 };
 
-const at = (h: Heard) => `${formatTime(h.t)} ${h.text}`;
+const at = (h: Heard) => {
+  const latin = /[ऀ-ॿ]/.test(h.text) ? `  (${toLatin(h.text)})` : "";
+  return `${formatTime(h.t)} ${h.text}${latin}`;
+};
 
 async function plan(notesPath: string, direct: boolean) {
   const text = notesPath === "-" ? readFileSync(0, "utf8") : existsSync(notesPath) ? readFileSync(notesPath, "utf8") : die(`no such file: ${notesPath}`);
@@ -105,6 +110,11 @@ async function plan(notesPath: string, direct: boolean) {
       if (!title || title === "Mix") problems.push(n.mix ? "a mix with no names: list what is sung (see 'heard')" : "no name (see 'heard' for the first sung lines)");
       const ev = events.length && n.start !== null && end !== null ? evidenceFor(events, n.start, end, n.mix) : { first: [], last: [], samples: [], markers: 0, warnings: [] };
       warnings.push(...ev.warnings);
+      // does every word of the name occur in what is sung? catches a wrong word, not a spelling variant
+      const nameWords = title.split(/[^\p{L}]+/u).filter((w) => w.length >= 3);
+      const sung = events.length && n.start !== null && end !== null ? linesBetween(events, n.start, end) : [];
+      const unheard = sung.length ? [...new Set(nameWords.filter((w) => !sung.some((l) => matchesQuery(l.text, w))))] : [];
+      if (unheard.length) warnings.push(`not heard in the captions: ${unheard.join(", ")} — check the spelling`);
       const cand = n.start !== null && end !== null ? { videoId: v.videoId, start: n.start, end, title } : null;
       const duplicates = cand ? findDuplicates(cand, [...existing, ...batch]).map((d) => ({ reason: d.reason, title: d.with.title, slug: d.with.slug })) : [];
       if (cand) batch.push(cand);

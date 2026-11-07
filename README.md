@@ -125,6 +125,8 @@ day 1 - https://www.youtube.com/watch?v=XXXXXXXXXXX
    finds a missing end from the captions (a missing start can't be guessed: ask the owner), prints what is sung at the start,
    the end and (for mixes) all through the range, warns about a range that starts or ends in speaking, and flags clips that
    are already in the collection (same video, overlapping or within a minute). The plan is written to `.data/add-plan.json`.
+   Caption lines are shown twice, in Devanagari and in Latin (`2:11:42 मुरलिया (muraliyaa)`), the middle of every range is
+   sampled as well when the name is not sung at its edges, and a title word the captions never sing is called out.
 2. Correct the titles in the plan from what the captions say (spelling, grammar). Each clip's `categories` starts as
    `["kirtan"]`; set it to any of `bhajan`, `kirtan`, `katha` (one or more) if the owner says so. For a mix, list the bhajans heard in the
    range; if they can't be told apart, keep the owner's names. Set `allowDuplicate` / `skip` where needed.

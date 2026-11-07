@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { afterEnd, appendToQueue, insertNext, nextRepeat, nextSpeed, readRepeat, readSpeed } from "./player-rules";
+import { afterEnd, appendToQueue, insertNext, nextRepeat, nextSpeed, readRepeat, readSpeed, SPEEDS } from "./player-rules";
 
 const q = (...s: string[]) => s.map((slug) => ({ slug }));
 const slugs = (l: { slug: string }[]) => l.map((x) => x.slug).join(",");
@@ -48,9 +48,12 @@ describe("queue edits", () => {
 });
 
 describe("speed", () => {
-  it("cycles 1 → 1.25 → 1.5 → 0.75 → 1 and reads only known values", () => {
-    expect([1, 1.25, 1.5, 0.75].map(nextSpeed)).toEqual([1.25, 1.5, 0.75, 1]);
-    expect(readSpeed("1.5")).toBe(1.5);
+  it("cycles through YouTube's speeds and wraps from 2× round to 0.25×", () => {
+    expect(SPEEDS).toEqual([0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]);
+    expect(SPEEDS.map(nextSpeed)).toEqual([0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 0.25]);
+    expect(nextSpeed(1)).toBe(1.25);
+    expect(readSpeed("1.75")).toBe(1.75);
+    expect(readSpeed("2")).toBe(2);
     expect(readSpeed("3")).toBe(1);
     expect(readSpeed(null)).toBe(1);
   });

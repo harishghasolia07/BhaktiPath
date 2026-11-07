@@ -234,12 +234,22 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
             >
               {p.repeat === "one" ? <Repeat1 className="size-[18px]" aria-hidden="true" /> : <Repeat className="size-[18px]" aria-hidden="true" />}
             </IconToggle>
+            <a
+              href={youtubeAtUrl(clip.videoId, clip.start)}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Open on YouTube"
+              aria-label="Open on YouTube in a new tab"
+              className="grid size-11 place-items-center rounded-full border border-gold/35 text-sandal max-[379px]:size-10 transition-colors hover:border-gold hover:text-ivory"
+            >
+              <YouTubeGlyph className="size-[20px]" />
+            </a>
             <button
               type="button"
               title="Playback speed"
               aria-label={`Playback speed ${p.rate}×. Tap to change`}
               onClick={p.cycleRate}
-              className="tabular grid h-11 min-w-11 place-items-center max-[379px]:h-10 max-[379px]:min-w-10 rounded-full border border-gold/35 px-2 text-[0.85rem] font-semibold text-sandal transition-colors hover:border-gold hover:text-ivory aria-pressed:border-marigold aria-pressed:text-marigold"
+              className="tabular grid h-11 min-w-11 place-items-center max-[379px]:h-10 max-[379px]:min-w-10 rounded-full border border-gold/35 px-2 text-[0.85rem] font-semibold text-sandal transition-colors hover:border-gold hover:text-ivory aria-pressed:border-marigold aria-pressed:text-marigold max-sm:hidden"
               aria-pressed={p.rate !== 1}
             >
               {p.rate}×
@@ -299,15 +309,6 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
               Sample clip: times are placeholders
             </p>
           )}
-          <a
-            className="mt-1 inline-flex w-fit items-center gap-1.5 text-[0.95rem] text-sandal underline decoration-gold/40 hover:text-ivory hover:decoration-gold"
-            href={youtubeAtUrl(clip.videoId, clip.start)}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Open on YouTube
-            <ExternalLink className="size-3.5" aria-hidden="true" />
-          </a>
         </div>
 
         {(upNext.length > 0 || hasLyrics) && (
@@ -456,6 +457,15 @@ function PlayGlyph() {
   return (
     <svg viewBox="0 0 16 16" className="size-4 fill-marigold" aria-hidden="true">
       <path d="M4 2.5v11l9-5.5z" />
+    </svg>
+  );
+}
+
+/** YouTube's play-in-a-rounded-rectangle mark, in the current text colour. */
+function YouTubeGlyph({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={`fill-current ${className}`} aria-hidden="true">
+      <path d="M21.6 7.2a2.8 2.8 0 0 0-2-2C17.9 4.8 12 4.8 12 4.8s-5.9 0-7.6.4a2.8 2.8 0 0 0-2 2A29 29 0 0 0 2 12a29 29 0 0 0 .4 4.8 2.8 2.8 0 0 0 2 2c1.7.4 7.6.4 7.6.4s5.9 0 7.6-.4a2.8 2.8 0 0 0 2-2A29 29 0 0 0 22 12a29 29 0 0 0-.4-4.8ZM10 15.2V8.8l5.2 3.2Z" />
     </svg>
   );
 }

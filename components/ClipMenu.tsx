@@ -3,20 +3,24 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { ChevronLeft, Check, ListEnd, ListPlus, ListVideo, MoreHorizontal, Plus, Share2 } from "lucide-react";
+import { ChevronLeft, Check, Gauge, ListEnd, ListPlus, ListVideo, MoreHorizontal, Plus, Share2 } from "lucide-react";
 import { addToPlaylist, createPlaylist, removeFromPlaylist } from "@/app/playlists/actions";
 import { refreshAccount, useAccount } from "@/lib/account-client";
 import type { Clip } from "@/lib/clip-schema";
 import { langOf } from "@/lib/display";
+import { SPEEDS } from "@/lib/player-rules";
 import { usePlayer } from "./PlayerProvider";
 
 /**
  * The "⋯" menu on a bhajan: play it next, add it to the queue, or put it in one of your playlists.
  * With `onShare`, phones also get a Share item (bigger screens show Share as its own button).
+ * Phones also get the playback speed here, so the icon row stays on one line.
  */
+type View = "main" | "lists" | "speed";
+
 export function ClipMenu({ clip, className = "", onShare }: { clip: Clip; className?: string; onShare?: () => void }) {
   const [anchor, setAnchor] = useState<HTMLButtonElement | null>(null);
-  const [view, setView] = useState<"main" | "lists">("main");
+  const [view, setView] = useState<View>("main");
   const menu = useRef<HTMLDivElement>(null);
   const open = anchor !== null;
 
@@ -71,8 +75,8 @@ function MenuBody({
   anchor: HTMLElement;
   clip: Clip;
   onShare?: () => void;
-  view: "main" | "lists";
-  setView: (v: "main" | "lists") => void;
+  view: View;
+  setView: (v: View) => void;
   close: () => void;
   menuRef: React.RefObject<HTMLDivElement | null>;
 }) {
@@ -146,11 +150,43 @@ function MenuBody({
           <button role="menuitem" className={item} onClick={() => setView("lists")}>
             <ListPlus className="size-[18px] text-gold" aria-hidden="true" /> Add to playlist…
           </button>
+          {sheet && (
+            <button role="menuitem" className={item} onClick={() => setView("speed")}>
+              <Gauge className="size-[18px] text-gold" aria-hidden="true" />
+              <span className="min-w-0 flex-1">Playback speed</span>
+              <span className="tabular text-[0.9rem] text-mist">{p.rate}×</span>
+            </button>
+          )}
           {sheet && onShare && (
             <button role="menuitem" className={item} onClick={() => (close(), onShare())}>
               <Share2 className="size-[18px] text-gold" aria-hidden="true" /> Share
             </button>
           )}
+        </>
+      ) : view === "speed" ? (
+        <>
+          <button role="menuitem" className={`${item} font-semibold`} onClick={() => setView("main")}>
+            <ChevronLeft className="size-[18px] text-gold" aria-hidden="true" /> Playback speed
+          </button>
+          {SPEEDS.map((s) => (
+            <button
+              key={s}
+              role="menuitemradio"
+              aria-checked={p.rate === s}
+              className={item}
+              onClick={() => {
+                p.setRate(s);
+                p.flash(s === 1 ? "Normal speed" : `Speed ${s}×`);
+                close();
+              }}
+            >
+              <span className="grid size-[18px] place-items-center">
+                {p.rate === s && <Check className="size-[18px] text-marigold" aria-hidden="true" />}
+              </span>
+              <span className="tabular min-w-0 flex-1">{s}×</span>
+              {s === 1 && <span className="text-[0.8rem] text-mist">Normal</span>}
+            </button>
+          ))}
         </>
       ) : (
         <>

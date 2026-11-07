@@ -26,6 +26,11 @@ describe("evidenceFor", () => {
   it("samples a mix about every 45 seconds", () => {
     expect(evidenceFor(events, 600, 860, true).samples.length).toBeGreaterThan(2);
   });
+  it("samples the middle of a single bhajan, away from the edges", () => {
+    const e = evidenceFor(events, 600, 860, false);
+    expect(e.samples.length).toBe(3);
+    expect(e.samples.every((s) => s.t > 645 && s.t < 815)).toBe(true);
+  });
 });
 
 describe("singingResumes", () => {

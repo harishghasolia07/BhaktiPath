@@ -90,6 +90,7 @@ export function SyncedLyrics({
         lang={lang}
         tabIndex={0}
         aria-label="Lyrics, following the singing"
+        data-footer-quiet
         onWheel={byHand}
         onTouchMove={byHand}
         onKeyDown={(e) => ["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End"].includes(e.key) && byHand()}

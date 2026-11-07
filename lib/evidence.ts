@@ -37,6 +37,13 @@ export function evidenceFor(events: CapEvent[], start: number, end: number, mix:
       const pick = inside.find((l) => l.t >= t && l.t < t + 45 && wordCount(l.text) >= 2 && !looksSpoken(l.text));
       if (pick) samples.push(pick);
     }
+  } else {
+    // a single bhajan: three lines from the middle, for when the name is not sung at the edges
+    const middle = inside.filter((l) => l.t > start + 45 && l.t < end - 45 && wordCount(l.text) >= 2 && !looksSpoken(l.text));
+    for (const share of [0.25, 0.5, 0.75]) {
+      const pick = middle[Math.floor(middle.length * share)];
+      if (pick && !samples.some((s) => s.t === pick.t)) samples.push(pick);
+    }
   }
   const markers = events.filter((e) => e.t >= start && e.t <= end && SUNG.test(e.text)).length;
   const warnings: string[] = [];

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Mukta, Tiro_Devanagari_Hindi, Yatra_One } from "next/font/google";
 import { HeaderNav } from "@/components/HeaderNav";
 import { PlayerProvider } from "@/components/PlayerProvider";
+import { SiteFooter } from "@/components/SiteFooter";
 import { Feather, Toran } from "@/components/ornaments";
 import "./site.css";
 import "./cursor.css";
@@ -72,39 +73,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             {children}
           </div>
 
-          <footer className="mt-group shrink-0 border-t border-gold/20 lg:mt-0 max-lg:[body:has([data-shell])_&]:mt-0 max-lg:[body:has([data-shell]):has([data-mini])_&]:hidden">
-            <div className="mx-auto flex max-w-[1520px] flex-col gap-1 px-4 py-2.5 text-[0.8rem] leading-snug text-sandal sm:gap-3 sm:px-6 sm:py-8 sm:text-[0.95rem] md:flex-row md:items-end md:justify-between lg:items-center lg:gap-6 lg:py-3 lg:text-[0.9rem]">
-              <p className="sm:hidden">
-                Katha by <strong className="font-semibold text-gold">Pujya Shri Indresh Upadhyay Ji Maharaj</strong>, from the{" "}
-                <a className="text-ivory underline decoration-gold/50" href="https://www.youtube.com/@BhaktiPath" target="_blank" rel="noopener noreferrer">
-                  BhaktiPath channel
-                </a>
-                . Unofficial fan collection. <Link href="/privacy" className="underline decoration-gold/50">Privacy</Link>
-              </p>
-              <p className="max-w-[60ch] max-sm:hidden xl:max-w-none">
-                Katha by <strong className="font-semibold text-gold">Pujya Shri Indresh Upadhyay Ji Maharaj</strong>. Every
-                video plays from the official{" "}
-                <a
-                  className="text-ivory underline decoration-gold/50 hover:decoration-gold"
-                  href="https://www.youtube.com/@BhaktiPath"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  BhaktiPath YouTube channel
-                </a>
-                . This is an unofficial fan collection.{" "}
-                <Link href="/privacy" className="text-ivory underline decoration-gold/50 hover:decoration-gold">
-                  Privacy
-                </Link>
-              </p>
-              <p lang="hi" className="shrink-0 font-serif text-[1.05rem] text-sandal/90 max-sm:hidden">
-                श्रवणं कीर्तनं विष्णोः स्मरणं पादसेवनम्
-                <span lang="en" className="ml-2 text-sandal/70">
-                  Bhagavatam 7.5.23
-                </span>
-              </p>
-            </div>
-          </footer>
+          <SiteFooter />
         </PlayerProvider>
       </body>
     </html>
