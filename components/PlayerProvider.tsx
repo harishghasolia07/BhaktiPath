@@ -324,16 +324,29 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   }, [sleep, flash]);
 
   // Docked: keep the player exactly over the shrine's opening (it scrolls and resizes with the page).
-  // It is positioned in page (not viewport) coordinates and sits absolutely in the document, so scrolling
-  // carries it along with the shrine natively — a fixed box nudged frame by frame drifts away from the
-  // frame during momentum scrolling on phones.
+  // Two ways, in order of preference:
+  //   1. CSS anchor positioning: the browser resolves the player's box against the shrine's slot during
+  //      layout, so scrolling, resizing and zooming keep them together without a single line of script —
+  //      nothing can fall behind, even in a standalone PWA whose scroll is handled by the compositor.
+  //   2. Older browsers: page (not viewport) coordinates, tracked per frame. Absolute in the document
+  //      means the scroll itself carries it; the loop only follows real layout changes.
   useLayoutEffect(() => {
     const d = dock.current;
     if (!d) return;
-    if (!isDocked || !slot) {
+    const clear = () => {
+      d.removeAttribute("data-dock");
       d.style.left = d.style.top = d.style.width = d.style.height = "";
+    };
+    if (!isDocked || !slot) {
+      clear();
       return;
     }
+    if (CSS.supports("position-anchor: --darshan-slot") && CSS.supports("width: anchor-size(width)")) {
+      clear();
+      d.setAttribute("data-dock", "slot");
+      return () => d.removeAttribute("data-dock");
+    }
+    d.removeAttribute("data-dock");
     let raf = 0;
     const place = () => {
       const r = slot.el.getBoundingClientRect();

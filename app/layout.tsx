@@ -36,6 +36,10 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  // A short, human-checkable version of the build the page was served from (the commit it was built
+  // at). Printed in the footer: an installed PWA has no address bar, so this is how we can tell
+  // whether the app in hand is running the current deployment or an older, cached one.
+  const build = process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? null;
   return (
     <html lang="en" className={`${yatra.variable} ${tiro.variable} ${mukta.variable}`}>
       {/* Laptops and up: the site is exactly one screen tall; only lists scroll, inside themselves. */}
@@ -73,7 +77,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             {children}
           </div>
 
-          <SiteFooter />
+          <SiteFooter build={build} />
         </PlayerProvider>
       </body>
     </html>

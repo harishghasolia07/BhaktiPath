@@ -153,6 +153,24 @@ textarea {
   }
 }
 
+/* ---------- The player, while open, sits in the shrine's opening ----------
+   The player element lives once, at the end of <body> (so it survives moving between pages).
+   While a bhajan plays on its own page it is anchored to the shrine's slot instead of being
+   placed by script: the browser resolves the box during layout, so scrolling (including the
+   compositor-driven momentum scrolling of an installed PWA) can never separate the video from
+   the frame, and no JavaScript has to run for it to stay put. */
+[data-player-slot] {
+  anchor-name: --darshan-slot;
+}
+[data-dock="slot"] {
+  position: absolute;
+  position-anchor: --darshan-slot;
+  top: anchor(top);
+  left: anchor(left);
+  width: anchor-size(width);
+  height: anchor-size(height);
+}
+
 /* Diya flame flicker (lit rows only) */
 @keyframes flicker {
   0%, 100% { transform: scale(1, 1); opacity: 1; }

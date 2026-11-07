@@ -11,7 +11,7 @@ const TOP = 12;
  * so it is there to read and click when the page opens; scrolling away hides it, returning to the top brings it
  * back. Laptops keep it in the layout as before.
  */
-export function SiteFooter() {
+export function SiteFooter({ build }: { build?: string | null }) {
   const [atTop, setAtTop] = useState(true);
   const [compact, setCompact] = useState(false);
 
@@ -65,6 +65,7 @@ export function SiteFooter() {
             BhaktiPath channel
           </a>
           . Unofficial fan collection. <Link href="/privacy" className="underline decoration-gold/50">Privacy</Link>
+          <Build id={build} />
         </p>
         <p className="max-w-[60ch] max-sm:hidden xl:max-w-none">
           Katha by <strong className="font-semibold text-gold">Pujya Shri Indresh Upadhyay Ji Maharaj</strong>. Every
@@ -81,6 +82,7 @@ export function SiteFooter() {
           <Link href="/privacy" className="text-ivory underline decoration-gold/50 hover:decoration-gold">
             Privacy
           </Link>
+          <Build id={build} />
         </p>
         <p lang="hi" className="shrink-0 font-serif text-[1.05rem] text-sandal/90 max-sm:hidden">
           श्रवणं कीर्तनं विष्णोः स्मरणं पादसेवनम्
@@ -90,5 +92,16 @@ export function SiteFooter() {
         </p>
       </div>
     </footer>
+  );
+}
+
+/** The build the page was served from, quietly at the end of the credit line. */
+function Build({ id }: { id?: string | null }) {
+  if (!id) return null;
+  return (
+    <span className="tabular whitespace-nowrap text-sandal/45" title="Build of this page (git commit)">
+      {" · "}
+      {id}
+    </span>
   );
 }
