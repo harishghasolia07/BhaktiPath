@@ -171,7 +171,7 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
                   <img src={thumbnailUrl(clip.videoId, "hq")} alt="" className="absolute inset-0 h-full w-full object-cover opacity-80" />
                 )}
                 {/* the site-wide player sits over this spot while the bhajan is open */}
-                <div ref={slotRef} className="absolute inset-0" />
+                <div ref={slotRef} data-player-slot className="absolute inset-0" />
               </>
             }
           >

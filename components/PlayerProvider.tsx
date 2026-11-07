@@ -324,6 +324,9 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   }, [sleep, flash]);
 
   // Docked: keep the player exactly over the shrine's opening (it scrolls and resizes with the page).
+  // It is positioned in page (not viewport) coordinates and sits absolutely in the document, so scrolling
+  // carries it along with the shrine natively — a fixed box nudged frame by frame drifts away from the
+  // frame during momentum scrolling on phones.
   useLayoutEffect(() => {
     const d = dock.current;
     if (!d) return;
@@ -334,8 +337,8 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     let raf = 0;
     const place = () => {
       const r = slot.el.getBoundingClientRect();
-      d.style.left = `${r.left}px`;
-      d.style.top = `${r.top}px`;
+      d.style.left = `${r.left + window.scrollX}px`;
+      d.style.top = `${r.top + window.scrollY}px`;
       d.style.width = `${r.width}px`;
       d.style.height = `${r.height}px`;
       raf = requestAnimationFrame(place);
@@ -425,7 +428,8 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         ref={dock}
         aria-hidden={!current || (!mini && !visible) ? true : undefined}
         className={[
-          "fixed z-40",
+          isDocked ? "absolute" : "fixed",
+          "z-40",
           !current ? "pointer-events-none invisible left-0 top-0 size-px opacity-0" : "",
           isDocked ? `transition-opacity ${visible ? "opacity-100 delay-500 duration-700" : "pointer-events-none invisible opacity-0 duration-200"}` : "",
           mini
