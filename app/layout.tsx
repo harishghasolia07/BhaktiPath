@@ -42,7 +42,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   const build = process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? null;
   return (
     <html lang="en" className={`${yatra.variable} ${tiro.variable} ${mukta.variable}`}>
-      {/* Laptops and up: the site is exactly one screen tall; only lists scroll, inside themselves. */}
+      {/* Laptops and up: the site is exactly one screen tall; the page scrolls inside #content, and the
+          header scrolls away with it — nothing sits over the page and hides what slides up under it. */}
       {/* Phones and tablets: Home and Katha Sangraha (marked data-shell) are exactly one screen tall and only
           their list scrolls; #content keeps its own scroll as a last resort on very small or landscape screens. */}
       <body className="flex min-h-svh flex-col antialiased max-lg:has-[[data-shell]]:h-dvh max-lg:has-[[data-shell]]:overflow-hidden lg:h-svh lg:overflow-hidden">
@@ -53,27 +54,31 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           >
             Skip to content
           </a>
-          <header className="relative z-20 shrink-0">
-            <Toran />
-            <div className="mx-auto flex h-[62px] w-full max-w-[1520px] items-center px-4 sm:h-[62px] sm:px-6">
-              <Link href="/" className="group flex shrink-0 items-center gap-2 no-underline sm:gap-3" aria-label="Shravanam Kirtanam, home">
-                <Feather className="h-8 w-5 shrink-0 max-[339px]:hidden sm:h-9 sm:w-6 transition-transform duration-500 ease-out group-hover:-rotate-12" />
-                <span className="flex items-baseline gap-3">
-                  <span lang="hi" className="whitespace-nowrap font-display text-[1.45rem] leading-none text-gold max-[399px]:text-[1.25rem] max-[359px]:text-[1.15rem] sm:text-[2rem]">
-                    श्रवणं कीर्तनं
-                  </span>
-                  <span className="hidden text-[0.8125rem] font-medium uppercase tracking-[0.16em] text-sandal lg:inline">
-                    Shravanam Kirtanam
-                  </span>
-                </span>
-              </Link>
-              <HeaderNav />
-            </div>
-          </header>
 
           {/* Laptops: the stage between header and footer is a size container; must-fit things
-              (shrine, board) size against it, leaving a 2rem gap above the footer. */}
-          <div id="content" className="flex-1 max-lg:has-[[data-shell]]:flex max-lg:has-[[data-shell]]:min-h-0 max-lg:has-[[data-shell]]:flex-col max-lg:has-[[data-shell]]:overflow-y-auto max-lg:has-[[data-shell]]:overscroll-contain lg:min-h-0 lg:overflow-y-auto lg:[container-type:size] lg:[--fit-h:calc(100cqh-2.75rem)]">
+              (shrine, board) size against it, leaving a 2rem gap above the footer. The header lives
+              inside it (see below) so it travels with the page instead of sitting on top of it. */}
+          <div id="content" className="flex-1 max-lg:has-[[data-shell]]:flex max-lg:has-[[data-shell]]:min-h-0 max-lg:has-[[data-shell]]:flex-col max-lg:has-[[data-shell]]:overflow-y-auto max-lg:has-[[data-shell]]:overscroll-contain lg:min-h-0 lg:overflow-y-auto lg:[container-type:size] lg:[--fit-h:calc(100cqh-var(--nav-h)-2rem)]">
+            {/* The header is part of the page, not a bar above it: scrolling carries it away, so
+                nothing is ever left covering the content that slides up. */}
+            <header className="relative z-20 shrink-0">
+              <Toran />
+              <div className="mx-auto flex h-[62px] w-full max-w-[1520px] items-center px-4 sm:h-[62px] sm:px-6">
+                <Link href="/" className="group flex shrink-0 items-center gap-2 no-underline sm:gap-3" aria-label="Shravanam Kirtanam, home">
+                  <Feather className="h-8 w-5 shrink-0 max-[339px]:hidden sm:h-9 sm:w-6 transition-transform duration-500 ease-out group-hover:-rotate-12" />
+                  <span className="flex items-baseline gap-3">
+                    <span lang="hi" className="whitespace-nowrap font-display text-[1.45rem] leading-none text-gold max-[399px]:text-[1.25rem] max-[359px]:text-[1.15rem] sm:text-[2rem]">
+                      श्रवणं कीर्तनं
+                    </span>
+                    <span className="hidden text-[0.8125rem] font-medium uppercase tracking-[0.16em] text-sandal lg:inline">
+                      Shravanam Kirtanam
+                    </span>
+                  </span>
+                </Link>
+                <HeaderNav />
+              </div>
+            </header>
+
             {children}
             {/* The player is drawn inside this box: the page's scroll clips it and carries it exactly
                 like the shrine it sits over. (At the end of <body> nothing clipped it, so on wide

@@ -247,52 +247,88 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!open || player.current || !host.current || !cur.current) return;
     let cancelled = false;
-    const el = document.createElement("div");
-    host.current.replaceChildren(el);
-    const c = cur.current;
-    loadYouTubeApi()
-      .then((YT) => {
-        if (cancelled) return;
-        player.current = new YT.Player(el, {
-          videoId: c.videoId,
-          width: "100%",
-          height: "100%",
-          playerVars: { start: peekResumeAt(c.slug) ?? c.start, end: c.end, autoplay: 1, playsinline: 1, rel: 0, cc_load_policy: 0, origin: window.location.origin },
-          events: {
-            onReady: (e) => {
-              // a different bhajan was picked while YouTube's player was still loading
-              const n = cur.current;
-              if (n && n.slug !== c.slug) e.target.loadVideoById({ videoId: n.videoId, startSeconds: peekResumeAt(n.slug) ?? n.start, endSeconds: n.end });
-            },
-            onStateChange: (e) => {
-              const c2 = cur.current;
-              if (!c2) return;
-              if (e.data === STATE.PLAYING) {
-                setPlaying(true);
-                clearResumeAt(); // the "Continue" jump has happened
-                if (rateRef.current !== 1) e.target.setPlaybackRate?.(rateRef.current);
-                markPlayed(c2.slug);
-                if (!captionsOff.current) {
-                  captionsOff.current = true;
-                  try {
-                    e.target.unloadModule?.("captions"); // Hindi auto-captions start on in embeds
-                  } catch {}
+    const box = host.current;
+    // YouTube measures its own iframe once, when it is created, and never looks again: a player born
+    // in a box that has no size stays a black rectangle with sound. This box only gets its size once
+    // the shrine's opening has been measured, which is a moment after playback is asked for — so wait
+    // for that, and after that keep telling the player its size (`setSize` is also what makes it
+    // re-lay-out its picture when the box changes).
+    const size = () => {
+      const r = box.getBoundingClientRect();
+      return r.width >= 2 && r.height >= 2 ? r : null;
+    };
+    const fit = () => {
+      const p = player.current;
+      const r = size();
+      if (!p || !r || typeof p.setSize !== "function") return;
+      p.setSize(Math.round(r.width), Math.round(r.height));
+    };
+    let started = false;
+    const start = (force = false) => {
+      if (started || cancelled || player.current) return;
+      const r = size();
+      if (!r && !force) return;
+      started = true;
+      const c = cur.current;
+      if (!c) return;
+      const el = document.createElement("div");
+      box.replaceChildren(el);
+      loadYouTubeApi()
+        .then((YT) => {
+          if (cancelled) return;
+          player.current = new YT.Player(el, {
+            videoId: c.videoId,
+            width: String(Math.round(r?.width ?? 640)),
+            height: String(Math.round(r?.height ?? 360)),
+            playerVars: { start: peekResumeAt(c.slug) ?? c.start, end: c.end, autoplay: 1, playsinline: 1, rel: 0, cc_load_policy: 0, origin: window.location.origin },
+            events: {
+              onReady: (e) => {
+                fit();
+                // a different bhajan was picked while YouTube's player was still loading
+                const n = cur.current;
+                if (n && n.slug !== c.slug) e.target.loadVideoById({ videoId: n.videoId, startSeconds: peekResumeAt(n.slug) ?? n.start, endSeconds: n.end });
+              },
+              onStateChange: (e) => {
+                const c2 = cur.current;
+                if (!c2) return;
+                if (e.data === STATE.PLAYING) {
+                  setPlaying(true);
+                  clearResumeAt(); // the "Continue" jump has happened
+                  if (rateRef.current !== 1) e.target.setPlaybackRate?.(rateRef.current);
+                  markPlayed(c2.slug);
+                  if (!captionsOff.current) {
+                    captionsOff.current = true;
+                    try {
+                      e.target.unloadModule?.("captions"); // Hindi auto-captions start on in embeds
+                    } catch {}
+                  }
+                } else if (e.data === STATE.BUFFERING) {
+                  setPlaying(true);
+                } else {
+                  setPlaying(false);
                 }
-              } else if (e.data === STATE.BUFFERING) {
-                setPlaying(true);
-              } else {
-                setPlaying(false);
-              }
-              if (e.data === STATE.ENDED) onEnd.current();
-              if (e.data === STATE.PAUSED && e.target.getCurrentTime() >= c2.end - 0.75) onEnd.current();
+                if (e.data === STATE.ENDED) onEnd.current();
+                if (e.data === STATE.PAUSED && e.target.getCurrentTime() >= c2.end - 0.75) onEnd.current();
+              },
+              onError: (e) => setError(PLAYER_ERRORS[e.data] ?? `YouTube couldn't play this video (error ${e.data}).`),
             },
-            onError: (e) => setError(PLAYER_ERRORS[e.data] ?? `YouTube couldn't play this video (error ${e.data}).`),
-          },
-        });
-      })
-      .catch((err: Error) => setError(err.message));
+          });
+        })
+        .catch((err: Error) => setError(err.message));
+    };
+
+    // The box is placed a moment after playback is asked for: create the player on that first real
+    // size, then keep it matched to the box.
+    const watch = new ResizeObserver(() => (started ? fit() : start()));
+    watch.observe(box);
+    start();
+    // Nothing gave the box a size: better a player with the wrong size (it can still be corrected)
+    // than a bhajan that never starts.
+    const fallback = window.setTimeout(() => start(true), 1500);
     return () => {
       cancelled = true;
+      window.clearTimeout(fallback);
+      watch.disconnect();
     };
     // `mount` is the box the player is drawn in; it is known one layout pass after the first render.
   }, [open, mount]);

@@ -13,6 +13,8 @@ export type YTPlayer = {
   unloadModule?(name: string): void;
   setPlaybackRate?(rate: number): void;
   getPlaybackRate?(): number;
+  /** Re-measures the iframe; YouTube also re-lays-out its picture from this. */
+  setSize?(width: number, height: number): void;
   destroy(): void;
 };
 
