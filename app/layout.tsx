@@ -75,6 +75,12 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               (shrine, board) size against it, leaving a 2rem gap above the footer. */}
           <div id="content" className="flex-1 max-lg:has-[[data-shell]]:flex max-lg:has-[[data-shell]]:min-h-0 max-lg:has-[[data-shell]]:flex-col max-lg:has-[[data-shell]]:overflow-y-auto max-lg:has-[[data-shell]]:overscroll-contain lg:min-h-0 lg:overflow-y-auto lg:[container-type:size] lg:[--fit-h:calc(100cqh-2.75rem)]">
             {children}
+            {/* The player is drawn inside this box: the page's scroll clips it and carries it exactly
+                like the shrine it sits over. (At the end of <body> nothing clipped it, so on wide
+                screens the video slid up over the header while the shrine was cut off below.)
+                `relative` makes it the player's containing block — inside the scroll area, so the
+                scroll clips the player too. */}
+            <div id="player-mount" className="relative" />
           </div>
 
           <SiteFooter build={build} />

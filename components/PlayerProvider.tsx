@@ -6,6 +6,7 @@
 // repositioned, never moved in the DOM, so YouTube's iframe is not reloaded.
 
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { Pause, Play, SkipForward, X } from "lucide-react";
 import type { Clip } from "@/lib/clip-schema";
@@ -79,6 +80,9 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const [sleep, setSleepState] = useState<Sleep>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [slot, setSlot] = useState<{ el: HTMLElement; owner: string } | null>(null);
+  // Where the player's box lives in the page: inside #content, the element the page scrolls, so it is
+  // clipped and carried by the page exactly like the shrine it sits in.
+  const [mount, setMount] = useState<HTMLElement | null>(null);
   const [repeat, cycleRepeat] = useRepeat();
   const [rate, setSpeed] = useSpeed();
   const [autoNext] = usePref("autonext", true);
@@ -290,7 +294,8 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [open]);
+    // `mount` is the box the player is drawn in; it is known one layout pass after the first render.
+  }, [open, mount]);
 
   // Clip-relative progress, and the end-time check.
   useEffect(() => {
@@ -323,41 +328,54 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     return () => window.clearTimeout(t);
   }, [sleep, flash]);
 
-  // Docked: keep the player exactly over the shrine's opening (it scrolls and resizes with the page).
-  // Two ways, in order of preference:
-  //   1. CSS anchor positioning: the browser resolves the player's box against the shrine's slot during
-  //      layout, so scrolling, resizing and zooming keep them together without a single line of script —
-  //      nothing can fall behind, even in a standalone PWA whose scroll is handled by the compositor.
-  //   2. Older browsers: page (not viewport) coordinates, tracked per frame. Absolute in the document
-  //      means the scroll itself carries it; the loop only follows real layout changes.
+  // The player is drawn inside #content — the box the page scrolls — rather than at the end of <body>.
+  // Otherwise its box sits in the document where nothing clips it, and on a wide screen, where only
+  // #content scrolls, it slides up over the header while the shrine is cut off underneath it.
+  // One-shot discovery of a node the root layout renders; nothing cascades from it.
+  useLayoutEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMount(document.getElementById("player-mount") ?? document.body);
+  }, []);
+
+  // Docked: put the player exactly over the shrine's opening.
+  //
+  // The player is a child of the page's own scroll area, so the scroll carries and clips it exactly
+  // like the shrine — nothing has to follow the scroll, and a stalled frame cannot leave it behind
+  // or let it paint outside the frame. All this has to do is follow the slot when the *layout*
+  // moves (window size, zoom, a reflow).
   useLayoutEffect(() => {
     const d = dock.current;
     if (!d) return;
-    const clear = () => {
-      d.removeAttribute("data-dock");
-      d.style.left = d.style.top = d.style.width = d.style.height = "";
-    };
     if (!isDocked || !slot) {
-      clear();
+      d.style.left = d.style.top = d.style.width = d.style.height = "";
       return;
     }
-    if (CSS.supports("position-anchor: --darshan-slot") && CSS.supports("width: anchor-size(width)")) {
-      clear();
-      d.setAttribute("data-dock", "slot");
-      return () => d.removeAttribute("data-dock");
-    }
-    d.removeAttribute("data-dock");
-    let raf = 0;
+
     const place = () => {
-      const r = slot.el.getBoundingClientRect();
-      d.style.left = `${r.left + window.scrollX}px`;
-      d.style.top = `${r.top + window.scrollY}px`;
-      d.style.width = `${r.width}px`;
-      d.style.height = `${r.height}px`;
-      raf = requestAnimationFrame(place);
+      // Offsets relative to the box that holds the player (inside the page's scroll area). Both
+      // rectangles are read in the same frame, so their difference is a layout fact — the scroll
+      // offset cancels out and never enters the number.
+      const p = d.offsetParent instanceof HTMLElement ? d.offsetParent : document.body;
+      const a = slot.el.getBoundingClientRect();
+      const b = p.getBoundingClientRect();
+      d.style.left = `${a.left - b.left}px`;
+      d.style.top = `${a.top - b.top}px`;
+      d.style.width = `${a.width}px`;
+      d.style.height = `${a.height}px`;
     };
     place();
-    return () => cancelAnimationFrame(raf);
+    // The slot's page position only moves when something in the layout moves (window size, zoom, a
+    // reflow); these cover that. The scroll itself is not one of those, so it is never observed.
+    const ro = new ResizeObserver(place);
+    ro.observe(slot.el);
+    const scroller = document.getElementById("content");
+    if (scroller) ro.observe(scroller);
+    window.addEventListener("resize", place);
+    void document.fonts?.ready.then(place);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", place);
+    };
   }, [isDocked, slot]);
 
   const api: Player = {
@@ -433,71 +451,76 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const i = current ? queue.findIndex((x) => x.slug === current.slug) : -1;
   const hasNext = i >= 0 && i + 1 < queue.length;
 
+  const dockEl = (
+    <div
+      ref={dock}
+      aria-hidden={!current || (!mini && !visible) ? true : undefined}
+      className={[
+        isDocked ? "absolute" : "fixed",
+        "z-40",
+        !current ? "pointer-events-none invisible left-0 top-0 size-px opacity-0" : "",
+        isDocked ? `transition-opacity ${visible ? "opacity-100 delay-500 duration-700" : "pointer-events-none invisible opacity-0 duration-200"}` : "",
+        mini
+          ? "inset-x-2 bottom-2 overflow-hidden rounded-[6px] border-2 border-brass bg-shyam shadow-[0_18px_40px_-8px_rgb(0_0_0/0.75)] sm:inset-x-auto sm:bottom-4 sm:right-4 sm:w-[22.5rem]"
+          : "",
+      ].join(" ")}
+    >
+      <div className={mini ? "relative h-[200px] w-full bg-black" : "relative size-full"}>
+        <div ref={host} className="absolute inset-0 [&>iframe]:h-full [&>iframe]:w-full" />
+      </div>
+
+      {mini && current && (
+        <div className="relative flex items-center gap-2 px-3 py-2" data-mini>
+          {/* progress through the clip: drag it, or tap */}
+          <Scrubber variant="thin" length={length} elapsed={elapsed} label="Position in this bhajan" onCommit={(t) => api.seekTo(current.start + t)} />
+          <Link href={clipHref(current)} className="min-w-0 flex-1 no-underline" title="Back to this bhajan's page" data-mini-title>
+            <span lang={langOf(current.title)} className="block truncate font-serif text-[1.02rem] leading-snug text-ivory hover:text-marigold">
+              {current.title}
+            </span>
+            <span className="tabular block text-[0.8rem] text-mist">
+              {error ? "Couldn't play" : ended ? "Darshan over" : `${formatTime(elapsed)} / ${formatTime(length)}`}
+            </span>
+          </Link>
+          <button
+            type="button"
+            onClick={api.toggle}
+            aria-label={playing ? "Pause" : "Play"}
+            title={playing ? "Pause" : "Play"}
+            className="grid size-10 shrink-0 place-items-center rounded-full bg-marigold text-velvet-deep hover:bg-[#ffb32e]"
+          >
+            {playing ? <Pause className="size-4 fill-current" aria-hidden="true" /> : <Play className="ml-0.5 size-4 fill-current" aria-hidden="true" />}
+          </button>
+          {hasNext && (
+            <button
+              type="button"
+              onClick={next}
+              aria-label="Next bhajan"
+              title="Next bhajan"
+              className="grid size-10 shrink-0 place-items-center rounded-full border border-gold/40 text-sandal hover:border-gold hover:text-ivory"
+            >
+              <SkipForward className="size-4" aria-hidden="true" />
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={close}
+            aria-label="Close the player"
+            title="Close"
+            className="grid size-10 shrink-0 place-items-center rounded-full text-sandal hover:bg-shyam-lit hover:text-ivory"
+          >
+            <X className="size-[18px]" aria-hidden="true" />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <Ctx.Provider value={api}>
       {children}
 
-      <div
-        ref={dock}
-        aria-hidden={!current || (!mini && !visible) ? true : undefined}
-        className={[
-          isDocked ? "absolute" : "fixed",
-          "z-40",
-          !current ? "pointer-events-none invisible left-0 top-0 size-px opacity-0" : "",
-          isDocked ? `transition-opacity ${visible ? "opacity-100 delay-500 duration-700" : "pointer-events-none invisible opacity-0 duration-200"}` : "",
-          mini
-            ? "inset-x-2 bottom-2 overflow-hidden rounded-[6px] border-2 border-brass bg-shyam shadow-[0_18px_40px_-8px_rgb(0_0_0/0.75)] sm:inset-x-auto sm:bottom-4 sm:right-4 sm:w-[22.5rem]"
-            : "",
-        ].join(" ")}
-      >
-        <div className={mini ? "relative h-[200px] w-full bg-black" : "relative size-full"}>
-          <div ref={host} className="absolute inset-0 [&>iframe]:h-full [&>iframe]:w-full" />
-        </div>
-
-        {mini && current && (
-          <div className="relative flex items-center gap-2 px-3 py-2" data-mini>
-            {/* progress through the clip: drag it, or tap */}
-            <Scrubber variant="thin" length={length} elapsed={elapsed} label="Position in this bhajan" onCommit={(t) => api.seekTo(current.start + t)} />
-            <Link href={clipHref(current)} className="min-w-0 flex-1 no-underline" title="Back to this bhajan's page" data-mini-title>
-              <span lang={langOf(current.title)} className="block truncate font-serif text-[1.02rem] leading-snug text-ivory hover:text-marigold">
-                {current.title}
-              </span>
-              <span className="tabular block text-[0.8rem] text-mist">
-                {error ? "Couldn't play" : ended ? "Darshan over" : `${formatTime(elapsed)} / ${formatTime(length)}`}
-              </span>
-            </Link>
-            <button
-              type="button"
-              onClick={api.toggle}
-              aria-label={playing ? "Pause" : "Play"}
-              title={playing ? "Pause" : "Play"}
-              className="grid size-10 shrink-0 place-items-center rounded-full bg-marigold text-velvet-deep hover:bg-[#ffb32e]"
-            >
-              {playing ? <Pause className="size-4 fill-current" aria-hidden="true" /> : <Play className="ml-0.5 size-4 fill-current" aria-hidden="true" />}
-            </button>
-            {hasNext && (
-              <button
-                type="button"
-                onClick={next}
-                aria-label="Next bhajan"
-                title="Next bhajan"
-                className="grid size-10 shrink-0 place-items-center rounded-full border border-gold/40 text-sandal hover:border-gold hover:text-ivory"
-              >
-                <SkipForward className="size-4" aria-hidden="true" />
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={close}
-              aria-label="Close the player"
-              title="Close"
-              className="grid size-10 shrink-0 place-items-center rounded-full text-sandal hover:bg-shyam-lit hover:text-ivory"
-            >
-              <X className="size-[18px]" aria-hidden="true" />
-            </button>
-          </div>
-        )}
-      </div>
+      {/* The player box is drawn inside the page's scroll area, so the scroll clips and carries it. */}
+      {mount && createPortal(dockEl, mount)}
 
       {/* phones: room at the end of the page so nothing stays hidden under the mini player */}
       {mini && <div className="h-[17rem] shrink-0 sm:h-0" aria-hidden="true" />}
