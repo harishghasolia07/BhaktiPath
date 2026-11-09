@@ -43,10 +43,22 @@ export async function addMyVideo(_: MyState, form: FormData): Promise<MyState> {
   let end = endText ? parseTime(endText) : null;
   if (start === null) return { error: "Please fix the marked fields.", fields: { start: "Use a time like 21:31 or 1:05:20." }, values };
   if (endText && end === null) return { error: "Please fix the marked fields.", fields: { end: "Use a time like 21:31 or 1:05:20." }, values };
-  const [fetchedTitle, length] = await Promise.all([fetchVideoTitle(videoId), end === null ? fetchVideoLength(videoId) : Promise.resolve(0)]);
+  // The form's hidden player reads the length in the browser; YouTube can refuse the server.
+  const sentLength = Number(String(form.get("length") ?? "").trim());
+  const clientLength = Number.isFinite(sentLength) && sentLength > 0 ? Math.floor(sentLength) : 0;
+  const [fetchedTitle, serverLength] = await Promise.all([
+    fetchVideoTitle(videoId),
+    end === null && !clientLength ? fetchVideoLength(videoId) : Promise.resolve(0),
+  ]);
   if (end === null) {
-    if (!length) return { error: "Please fix the marked fields.", fields: { end: "Couldn't read this video's length. Enter where it ends, like 1:52:44." }, values };
-    end = length;
+    end = clientLength || serverLength;
+    if (!end) {
+      return {
+        error: "Please fix the marked fields.",
+        fields: { end: "Couldn't read this video's length. Enter where it ends, like 1:52:44. Live streams and premieres have no length to read." },
+        values,
+      };
+    }
   }
   // Is it already there? Same video overlapping or within a minute of one of yours, or of a public clip.
   if (form.get("confirm") !== "1") {

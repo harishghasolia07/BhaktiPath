@@ -1,15 +1,86 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { addMyVideo, saveMyVideo } from "@/app/my/actions";
 import type { Category, Clip } from "@/lib/clip-schema";
 import { SectionPicker } from "../SectionPicker";
-import { formatTime } from "@/lib/youtube";
+import { formatTime, parseVideoId } from "@/lib/youtube";
+import { loadYouTubeApi, type YTPlayer } from "@/lib/yt-player";
 
 const field =
   "h-12 w-full rounded-[6px] border border-gold/35 bg-shyam px-3.5 text-ivory placeholder:text-mist/70 focus:border-marigold focus:shadow-[0_0_0_1px_var(--color-marigold)] focus:outline-none focus-visible:outline-none aria-[invalid=true]:border-marigold";
+
+/**
+ * Asks YouTube's player for a video's length in the browser, so adding the whole video needs only
+ * the link. The player is hidden and only cues the video (it never plays). 0 until known.
+ */
+function useVideoLength(videoId: string | null) {
+  const [found, setFound] = useState<{ id: string | null; length: number; reading: boolean }>({ id: null, length: 0, reading: false });
+  // a different link: start over (before painting the old video's length)
+  if (found.id !== videoId) setFound({ id: videoId, length: 0, reading: Boolean(videoId) });
+
+  useEffect(() => {
+    if (!videoId) return;
+    let dead = false;
+    let player: YTPlayer | null = null;
+    const host = document.createElement("div");
+    host.setAttribute("aria-hidden", "true");
+    host.style.cssText = "position:fixed;left:-9999px;top:0;width:2px;height:2px;overflow:hidden;opacity:0;pointer-events:none";
+    document.body.appendChild(host);
+    const startedAt = Date.now();
+    const timers: { tick?: number; giveUp?: number } = {};
+    const stop = () => {
+      window.clearInterval(timers.tick);
+      window.clearTimeout(timers.giveUp);
+      if (!dead) setFound((f) => (f.id === videoId ? { ...f, reading: false } : f));
+    };
+    timers.giveUp = window.setTimeout(stop, 12500); // a player that never becomes ready
+    const read = () => {
+      let d = 0;
+      try {
+        d = Math.floor(player?.getDuration() ?? 0);
+      } catch {
+        d = 0;
+      }
+      if (d > 0) {
+        setFound((f) => (f.id === videoId ? { id: videoId, length: d, reading: false } : f));
+        stop();
+      } else if (Date.now() - startedAt > 12000) {
+        stop(); // live streams and blocked embeds have no length to read
+      }
+    };
+    // wait for a typed link to settle before starting the player
+    const arm = window.setTimeout(() => {
+      if (dead) return;
+      loadYouTubeApi()
+        .then((YT) => {
+          if (dead) return;
+          player = new YT.Player(host, {
+            videoId,
+            playerVars: { autoplay: 0, controls: 0, disablekb: 1, playsinline: 1, rel: 0 },
+            events: { onReady: () => { timers.tick = window.setInterval(read, 500); read(); }, onError: stop },
+          });
+        })
+        .catch(stop);
+    }, 500);
+    return () => {
+      dead = true;
+      window.clearTimeout(arm);
+      window.clearTimeout(timers.giveUp);
+      window.clearInterval(timers.tick);
+      try {
+        player?.destroy();
+      } catch {
+        // the iframe may already be gone
+      }
+      host.remove();
+    };
+  }, [videoId]);
+
+  return { length: found.length, reading: found.reading };
+}
 
 /** Add a YouTube video to your own library, or edit one you added. Only the link is needed to add. */
 export function MyVideoForm({ video }: { video?: Clip }) {
@@ -17,17 +88,42 @@ export function MyVideoForm({ video }: { video?: Clip }) {
   const router = useRouter();
   const err = state?.fields ?? {};
   const v = state?.values; // what was typed, kept after a warning or an error (adding only)
-  // after adding: refresh the list behind the form (the form itself clears on its own)
+  // the fields stay uncontrolled (so the form clears after adding); these copies only watch them
+  const [link, setLink] = useState(v?.link ?? "");
+  const [startText, setStartText] = useState(v?.start ?? "");
+  const [endText, setEndText] = useState(v?.end ?? "");
+  const videoId = video ? null : parseVideoId(link);
+  const wholeVideo = Boolean(videoId) && !startText.trim() && !endText.trim();
+  const needsEnd = Boolean(videoId) && !endText.trim(); // the end is worked out from the length
+  const { length, reading } = useVideoLength(needsEnd ? videoId : null);
+  // after adding, the browser clears the fields; clear these copies too (before painting them)
+  const [seenAdded, setSeenAdded] = useState<string | null>(null);
+  if (state?.added && state.added.id !== seenAdded) {
+    setSeenAdded(state.added.id);
+    setLink("");
+    setStartText("");
+    setEndText("");
+  }
   useEffect(() => {
-    if (state?.added) router.refresh();
+    if (state?.added) router.refresh(); // show the new video in the list behind the form
   }, [state, router]);
   return (
     <form action={action} className="flex flex-col gap-5">
       {video && <input type="hidden" name="id" value={video.id} />}
+      {!video && <input type="hidden" name="length" value={length || ""} />}
       {!video && (
         <label className="flex flex-col gap-1.5">
           <span className="font-semibold text-sandal">YouTube link</span>
-          <input name="link" inputMode="url" required defaultValue={v?.link} placeholder="https://www.youtube.com/watch?v=…" aria-invalid={Boolean(err.link)} className={field} />
+          <input
+            name="link"
+            inputMode="url"
+            required
+            defaultValue={v?.link}
+            onChange={(e) => setLink(e.target.value)}
+            placeholder="https://www.youtube.com/watch?v=…"
+            aria-invalid={Boolean(err.link)}
+            className={field}
+          />
           {err.link && <span className="text-[0.9rem] text-marigold">{err.link}</span>}
         </label>
       )}
@@ -51,6 +147,7 @@ export function MyVideoForm({ video }: { video?: Clip }) {
             <input
               name={which}
               defaultValue={video ? formatTime(video[which]) : v?.[which]}
+              onChange={(e) => (which === "start" ? setStartText : setEndText)(e.target.value)}
               placeholder={video ? "" : which === "start" ? "0:00" : "End of video"}
               inputMode="numeric"
               required={Boolean(video)}
@@ -61,7 +158,15 @@ export function MyVideoForm({ video }: { video?: Clip }) {
           </label>
         ))}
       </div>
-      {!video && <p className="-mt-2 text-[0.9rem] text-mist">Leave both empty to add the whole video. Times look like 21:31 or 1:05:20.</p>}
+      {!video && (
+        <p className="-mt-2 text-[0.9rem] text-mist">
+          {wholeVideo && length > 0
+            ? `Whole video · ${formatTime(length)}. Times look like 21:31 or 1:05:20.`
+            : wholeVideo && reading
+              ? "Reading the video’s length… Leave both empty to add the whole video."
+              : "Leave both empty to add the whole video. Times look like 21:31 or 1:05:20."}
+        </p>
+      )}
 
       <fieldset className="flex flex-col gap-1.5">
         <legend className="mb-1.5 font-semibold text-sandal">Who can see it</legend>
