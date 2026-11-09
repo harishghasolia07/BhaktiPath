@@ -43,3 +43,6 @@ export function appendToQueue<T extends Slugged>(list: T[], currentSlug: string 
 export const SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 export const nextSpeed = (r: number): number => SPEEDS[(Math.max(0, SPEEDS.indexOf(r)) + 1) % SPEEDS.length];
 export const readSpeed = (raw: string | null): number => (SPEEDS.includes(Number(raw)) ? Number(raw) : 1);
+
+/** How long the sleep timer can be set for, in minutes (besides "after this bhajan"). */
+export const SLEEP_MINUTES = [15, 30, 60] as const;

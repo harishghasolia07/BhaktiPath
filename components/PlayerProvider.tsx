@@ -47,7 +47,10 @@ type Player = {
   toggle(): void;
   seekTo(t: number): void;
   seekBy(sec: number): void;
+  /** the next bhajan in the queue, going round at the end */
   next(): void;
+  /** the one before it, going round at the start */
+  previous(): void;
   goTo(slug: string): void;
   restart(): void;
   close(): void;
@@ -97,7 +100,6 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const prefs = useRef({ repeat, autoNext });
   const rateRef = useRef(rate);
   const sleepRef = useRef<Sleep>(null);
-  const docked = useRef(false);
   const onEnd = useRef<() => void>(() => {});
   const lastSave = useRef(0);
 
@@ -113,9 +115,14 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   }, [sleep]);
 
   const isDocked = Boolean(current && slot && slot.owner === owner);
+
+  // While the player sits in this page's shrine, the address bar and the tab follow the bhajan that
+  // is actually playing — including one started by the next/previous buttons.
   useEffect(() => {
-    docked.current = isDocked;
-  }, [isDocked]);
+    if (!isDocked || !current) return;
+    window.history.replaceState(null, "", clipHref(current));
+    document.title = `${current.title} · Shravanam Kirtanam`;
+  }, [isDocked, current]);
 
   const mini = Boolean(current) && !isDocked;
   // Docked: shown while the pat is open (fading in as it parts) and hidden behind an error message.
@@ -158,18 +165,10 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     else p.cueVideoById(o);
   }, []);
 
-  const show = useCallback(
-    (c: Clip) => {
-      cur.current = c;
-      setCurrent(c);
-      // on the clip page, follow along in the address bar and tab title
-      if (docked.current) {
-        window.history.replaceState(null, "", clipHref(c));
-        document.title = `${c.title} · Shravanam Kirtanam`;
-      }
-    },
-    [],
-  );
+  const show = useCallback((c: Clip) => {
+    cur.current = c;
+    setCurrent(c);
+  }, []);
 
   const play = useCallback(
     (list: Clip[], slug: string, who: string) => {
@@ -196,11 +195,19 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     [load, show],
   );
 
-  const next = useCallback(() => {
-    const list = q.current;
-    const i = list.findIndex((x) => x.slug === cur.current?.slug);
-    if (i >= 0 && i + 1 < list.length) goTo(list[i + 1].slug);
-  }, [goTo]);
+  // Next and previous walk the queue, and go round it — the same circle the "what follows" list on
+  // the page already shows, so neither button ever turns into a dead end.
+  const step = useCallback(
+    (dir: 1 | -1) => {
+      const list = q.current;
+      const i = list.findIndex((x) => x.slug === cur.current?.slug);
+      if (i < 0) return;
+      goTo(list[(i + dir + list.length) % list.length].slug);
+    },
+    [goTo],
+  );
+  const next = useCallback(() => step(1), [step]);
+  const previous = useCallback(() => step(-1), [step]);
 
   const edit = useCallback(
     (clip: Clip, how: "next" | "end") => {
@@ -512,6 +519,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       setNow(target);
     },
     next,
+    previous,
     goTo,
     restart: () => {
       if (!cur.current) return;
@@ -530,7 +538,8 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const length = current ? current.end - current.start : 1;
   const elapsed = current ? Math.min(Math.max(now - current.start, 0), length) : 0;
   const i = current ? queue.findIndex((x) => x.slug === current.slug) : -1;
-  const hasNext = i >= 0 && i + 1 < queue.length;
+  // next goes round the queue, so it is useful whenever there is more than this one bhajan
+  const hasNext = i >= 0 && queue.length > 1;
   // The player is interactive exactly when it can be seen.
   const shown = Boolean(current) && (mini || visible);
 

@@ -3,22 +3,37 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { ChevronLeft, Check, Gauge, ListEnd, ListPlus, ListVideo, MoreHorizontal, Plus, Share2 } from "lucide-react";
+import { ChevronLeft, Check, Gauge, ListEnd, ListPlus, ListVideo, MoreHorizontal, Moon, Plus, Share2, SkipBack } from "lucide-react";
 import { addToPlaylist, createPlaylist, removeFromPlaylist } from "@/app/playlists/actions";
 import { refreshAccount, useAccount } from "@/lib/account-client";
 import type { Clip } from "@/lib/clip-schema";
 import { langOf } from "@/lib/display";
-import { SPEEDS } from "@/lib/player-rules";
-import { usePlayer } from "./PlayerProvider";
+import { SLEEP_MINUTES, SPEEDS } from "@/lib/player-rules";
+import { usePlayer, type Sleep } from "./PlayerProvider";
 
 /**
  * The "⋯" menu on a bhajan: play it next, add it to the queue, or put it in one of your playlists.
- * With `onShare`, phones also get a Share item (bigger screens show Share as its own button).
- * Phones also get the playback speed here, so the icon row stays on one line.
+ * With `onShare`, phones also get a Share item (bigger screens show Share as its own button); with
+ * `onPrevious`/`onSleep`, phones get the previous bhajan and the sleep timer here too, so the icon
+ * row under the shrine stays on one line.
  */
-type View = "main" | "lists" | "speed";
+type View = "main" | "lists" | "speed" | "sleep";
 
-export function ClipMenu({ clip, className = "", onShare }: { clip: Clip; className?: string; onShare?: () => void }) {
+export function ClipMenu({
+  clip,
+  className = "",
+  onShare,
+  onPrevious,
+  sleep,
+  onSleep,
+}: {
+  clip: Clip;
+  className?: string;
+  onShare?: () => void;
+  onPrevious?: () => void;
+  sleep?: Sleep;
+  onSleep?: (s: Sleep) => void;
+}) {
   const [anchor, setAnchor] = useState<HTMLButtonElement | null>(null);
   const [view, setView] = useState<View>("main");
   const menu = useRef<HTMLDivElement>(null);
@@ -49,16 +64,32 @@ export function ClipMenu({ clip, className = "", onShare }: { clip: Clip; classN
     <>
       <button
         type="button"
-        aria-label={`More options for ${clip.title}`}
+        aria-label={`More options for ${clip.title}${onSleep && sleep ? ", sleep timer on" : ""}`}
         aria-haspopup="menu"
         aria-expanded={open}
         title="More"
         onClick={(e) => (open ? (setAnchor(null), setView("main")) : setAnchor(e.currentTarget))}
-        className={`grid place-items-center rounded-full text-sandal transition-colors hover:text-marigold aria-expanded:text-marigold ${className}`}
+        className={`relative grid place-items-center rounded-full text-sandal transition-colors hover:text-marigold aria-expanded:text-marigold ${className}`}
       >
         <MoreHorizontal className="size-5" aria-hidden="true" />
+        {/* phones keep the sleep timer in this menu: mark it here while one is set */}
+        {onSleep && sleep && <span aria-hidden="true" className="absolute right-1 top-1 size-1.5 rounded-full bg-marigold sm:hidden" />}
       </button>
-      {anchor && createPortal(<MenuBody anchor={anchor} clip={clip} onShare={onShare} view={view} setView={setView} close={() => (setAnchor(null), setView("main"))} menuRef={menu} />, document.body)}
+      {anchor && createPortal(
+        <MenuBody
+          anchor={anchor}
+          clip={clip}
+          onShare={onShare}
+          onPrevious={onPrevious}
+          sleep={sleep}
+          onSleep={onSleep}
+          view={view}
+          setView={setView}
+          close={() => (setAnchor(null), setView("main"))}
+          menuRef={menu}
+        />,
+        document.body,
+      )}
     </>
   );
 }
@@ -67,6 +98,9 @@ function MenuBody({
   anchor,
   clip,
   onShare,
+  onPrevious,
+  sleep,
+  onSleep,
   view,
   setView,
   close,
@@ -75,6 +109,9 @@ function MenuBody({
   anchor: HTMLElement;
   clip: Clip;
   onShare?: () => void;
+  onPrevious?: () => void;
+  sleep?: Sleep;
+  onSleep?: (s: Sleep) => void;
   view: View;
   setView: (v: View) => void;
   close: () => void;
@@ -150,6 +187,11 @@ function MenuBody({
           <button role="menuitem" className={item} onClick={() => setView("lists")}>
             <ListPlus className="size-[18px] text-gold" aria-hidden="true" /> Add to playlist…
           </button>
+          {sheet && onPrevious && (
+            <button role="menuitem" className={item} onClick={() => (close(), onPrevious())}>
+              <SkipBack className="size-[18px] fill-current text-gold" aria-hidden="true" /> Previous bhajan
+            </button>
+          )}
           {sheet && (
             <button role="menuitem" className={item} onClick={() => setView("speed")}>
               <Gauge className="size-[18px] text-gold" aria-hidden="true" />
@@ -157,9 +199,49 @@ function MenuBody({
               <span className="tabular text-[0.9rem] text-mist">{p.rate}×</span>
             </button>
           )}
+          {sheet && onSleep && (
+            <button role="menuitem" className={item} onClick={() => setView("sleep")}>
+              <Moon className="size-[18px] text-gold" aria-hidden="true" />
+              <span className="min-w-0 flex-1">Sleep timer</span>
+              <span className="text-[0.9rem] text-mist">{sleep ? (sleep.kind === "end" ? "After this" : `${sleep.minutes} min`) : "Off"}</span>
+            </button>
+          )}
           {sheet && onShare && (
             <button role="menuitem" className={item} onClick={() => (close(), onShare())}>
               <Share2 className="size-[18px] text-gold" aria-hidden="true" /> Share
+            </button>
+          )}
+        </>
+      ) : view === "sleep" ? (
+        <>
+          <button role="menuitem" className={`${item} font-semibold`} onClick={() => setView("main")}>
+            <ChevronLeft className="size-[18px] text-gold" aria-hidden="true" /> Sleep timer
+          </button>
+          <button
+            role="menuitemradio"
+            aria-checked={sleep?.kind === "end"}
+            className={item}
+            onClick={() => (onSleep?.({ kind: "end" }), close())}
+          >
+            <span className="grid size-[18px] place-items-center">{sleep?.kind === "end" && <Check className="size-[18px] text-marigold" aria-hidden="true" />}</span>
+            <span className="min-w-0 flex-1">After this bhajan</span>
+          </button>
+          {SLEEP_MINUTES.map((m) => (
+            <button
+              key={m}
+              role="menuitemradio"
+              aria-checked={sleep?.kind === "time" && sleep.minutes === m}
+              className={item}
+              onClick={() => (onSleep?.({ kind: "time", minutes: m, until: Date.now() + m * 60_000 }), close())}
+            >
+              <span className="grid size-[18px] place-items-center">{sleep?.kind === "time" && sleep.minutes === m && <Check className="size-[18px] text-marigold" aria-hidden="true" />}</span>
+              <span className="tabular min-w-0 flex-1">In {m} minutes</span>
+            </button>
+          ))}
+          {sleep && (
+            <button role="menuitem" className={`${item} text-marigold`} onClick={() => (onSleep?.(null), close())}>
+              <span className="grid size-[18px] place-items-center" />
+              <span className="min-w-0 flex-1">Turn off</span>
             </button>
           )}
         </>

@@ -3,10 +3,11 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { ExternalLink, ListMusic, Moon, Pause, Play, Repeat, Repeat1, RotateCcw, Settings, Share2 } from "lucide-react";
+import { ExternalLink, ListMusic, Moon, Pause, Play, Repeat, Repeat1, RotateCcw, Settings, Share2, SkipBack, SkipForward } from "lucide-react";
 import type { Clip } from "@/lib/clip-schema";
 import { sectionsHi, sectionsText } from "@/lib/clip-schema";
 import { clipHref, langOf } from "@/lib/display";
+import { SLEEP_MINUTES } from "@/lib/player-rules";
 import { takeAutoplay, usePlayed, usePref } from "@/lib/local";
 import { formatLength, formatTime, thumbnailUrl, youtubeAtUrl } from "@/lib/youtube";
 import { ClipMenu } from "./ClipMenu";
@@ -42,7 +43,7 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
   const played = usePlayed();
   const slotRef = useRef<HTMLDivElement>(null);
   const pRef = useRef(p);
-  const actions = useRef({ togglePlay: () => {}, seekBy: (_: number) => {}, nextClip: () => {}, toggleLoop: () => {} });
+  const actions = useRef({ togglePlay: () => {}, seekBy: (_: number) => {}, nextClip: () => {}, prevClip: () => {}, toggleLoop: () => {} });
 
   useEffect(() => {
     pRef.current = p;
@@ -80,6 +81,16 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
     if (mine) p.goTo(slug);
     else p.play(queue, slug, me);
   }
+  // Previous/next bhajan: round the queue, the same circle the "what follows" list shows.
+  function stepBy(dir: 1 | -1) {
+    if (mine) {
+      if (dir === 1) p.next();
+      else p.previous();
+      return;
+    }
+    if (!list.length) return;
+    playClip(list[(idx + dir + list.length) % list.length].slug);
+  }
 
   // Close the sleep menu on Escape or a tap elsewhere.
   useEffect(() => {
@@ -95,7 +106,7 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
     };
   }, [sleepMenu]);
 
-  // Keyboard: Space/K play-pause, ←/→ 5 seconds, N next, L repeat.
+  // Keyboard: Space/K play-pause, ←/→ 5 seconds, N next, P previous, L repeat.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey) return;
@@ -111,17 +122,21 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
         e.preventDefault();
         actions.current.seekBy(e.key === "ArrowRight" ? 5 : -5);
       } else if (key === "n") actions.current.nextClip();
+      else if (key === "p") actions.current.prevClip();
       else if (key === "l") actions.current.toggleLoop();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  function startSleep(s: Sleep) {
+  function pickSleep(s: Sleep) {
     if (!mine) openDarshan();
     p.setSleep(s);
-    setSleepMenu(null);
     p.flash(s === null ? "Sleep timer off" : s.kind === "end" ? "Will stop after this bhajan" : `Will pause in ${s.minutes} minutes`);
+  }
+  function startSleep(s: Sleep) {
+    pickSleep(s);
+    setSleepMenu(null);
   }
 
   const [shown, setShown] = useState<number | null>(null); // while dragging the bar, the label follows the finger
@@ -146,7 +161,8 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
     actions.current = {
       togglePlay,
       seekBy: (sec) => (mine ? pRef.current.seekBy(sec) : undefined),
-      nextClip: () => (next ? playClip(next.slug) : undefined),
+      nextClip: () => stepBy(1),
+      prevClip: () => stepBy(-1),
       toggleLoop: () => pRef.current.cycleRepeat(),
     };
   });
@@ -211,19 +227,28 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
             {formatTime(labelTime)} / {formatTime(length)}
           </span>
           <div className="flex flex-wrap items-center gap-1.5 max-[379px]:gap-1">
-            <button
-              type="button"
-              onClick={togglePlay}
-              aria-label={playing ? "Pause" : "Play"}
-              title={playing ? "Pause" : "Play"}
-              className="grid size-12 place-items-center rounded-full bg-marigold text-velvet-deep shadow-[0_6px_14px_-4px_rgb(0_0_0/0.6)] transition-colors hover:bg-[#ffb32e]"
-            >
-              {playing ? (
-                <Pause className="size-5 fill-current" aria-hidden="true" />
-              ) : (
-                <Play className="ml-0.5 size-5 fill-current" aria-hidden="true" />
-              )}
-            </button>
+            {/* the transport stays together: previous, play, next */}
+            <div className="flex items-center gap-1.5 max-[379px]:gap-1">
+              <IconToggle label="Previous bhajan" onClick={() => stepBy(-1)} className="max-sm:hidden">
+                <SkipBack className="size-[18px] fill-current" aria-hidden="true" />
+              </IconToggle>
+              <button
+                type="button"
+                onClick={togglePlay}
+                aria-label={playing ? "Pause" : "Play"}
+                title={playing ? "Pause" : "Play"}
+                className="grid size-12 place-items-center rounded-full bg-marigold text-velvet-deep shadow-[0_6px_14px_-4px_rgb(0_0_0/0.6)] transition-colors hover:bg-[#ffb32e]"
+              >
+                {playing ? (
+                  <Pause className="size-5 fill-current" aria-hidden="true" />
+                ) : (
+                  <Play className="ml-0.5 size-5 fill-current" aria-hidden="true" />
+                )}
+              </button>
+              <IconToggle label="Next bhajan" onClick={() => stepBy(1)}>
+                <SkipForward className="size-[18px] fill-current" aria-hidden="true" />
+              </IconToggle>
+            </div>
             <IconToggle label="Play from the start" onClick={openDarshan}>
               <RotateCcw className="size-[18px]" aria-hidden="true" />
             </IconToggle>
@@ -257,7 +282,7 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
             <IconToggle label="Play the next one automatically" pressed={autoNext} onClick={() => setAutoNext(!autoNext)}>
               <ListMusic className="size-[18px]" aria-hidden="true" />
             </IconToggle>
-            <div className="relative" data-sleep>
+            <div className="relative max-sm:hidden" data-sleep>
               <IconToggle
                 label={sleep ? "Sleep timer is on" : "Sleep timer"}
                 pressed={sleep !== null}
@@ -277,7 +302,14 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
                 <Share2 className="size-[18px]" aria-hidden="true" />
               </IconToggle>
             )}
-            <ClipMenu clip={clip} onShare={clip.owner ? undefined : share} className="size-11 max-[379px]:size-10 border border-gold/35 hover:border-gold" />
+            <ClipMenu
+              clip={clip}
+              onShare={clip.owner ? undefined : share}
+              onPrevious={() => stepBy(-1)}
+              sleep={sleep}
+              onSleep={pickSleep}
+              className="size-11 max-[379px]:size-10 border border-gold/35 hover:border-gold"
+            />
           </div>
         </div>
       </div>
@@ -409,7 +441,7 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
         )}
         <p className={`hidden text-[0.9rem] text-sandal/80 lg:block ${showLyrics ? "short:hidden" : ""}`}>
           Keys: <kbd className="font-sans">Space</kbd> play/pause · <kbd className="font-sans">←</kbd> <kbd className="font-sans">→</kbd> 5 seconds ·{" "}
-          <kbd className="font-sans">N</kbd> next · <kbd className="font-sans">L</kbd> repeat
+          <kbd className="font-sans">N</kbd> next · <kbd className="font-sans">P</kbd> previous · <kbd className="font-sans">L</kbd> repeat
         </p>
         <p className={`text-[0.9rem] text-sandal/80 ${showLyrics ? "short:hidden" : ""}`}>
           Tip: to watch in 1080p, choose it once in YouTube&apos;s{" "}
@@ -481,22 +513,20 @@ function SleepMenu({ anchor, sleep, onPick }: { anchor: HTMLElement; sleep: Slee
       style={{ right: Math.max(8, window.innerWidth - r.right), bottom: window.innerHeight - r.top + 8 }}
       className="fixed z-[60] w-52 overflow-hidden rounded-[4px] border border-gold/60 bg-shyam py-1 shadow-[0_16px_32px_rgb(0_0_0/0.6)]"
     >
-      {(
-        [
-          ["After this bhajan", { kind: "end" }],
-          ["In 15 minutes", { kind: "time", minutes: 15 }],
-          ["In 30 minutes", { kind: "time", minutes: 30 }],
-          ["In 60 minutes", { kind: "time", minutes: 60 }],
-        ] as const
-      ).map(([label, s]) => (
-        <li key={label} role="none">
+      <li role="none">
+        <button role="menuitem" type="button" onClick={() => onPick({ kind: "end" })} className="block w-full px-4 py-2.5 text-left text-ivory hover:bg-shyam-lit">
+          After this bhajan
+        </button>
+      </li>
+      {SLEEP_MINUTES.map((m) => (
+        <li key={m} role="none">
           <button
             role="menuitem"
             type="button"
-            onClick={() => onPick(s.kind === "end" ? { kind: "end" } : { kind: "time", minutes: s.minutes, until: Date.now() + s.minutes * 60_000 })}
+            onClick={() => onPick({ kind: "time", minutes: m, until: Date.now() + m * 60_000 })}
             className="block w-full px-4 py-2.5 text-left text-ivory hover:bg-shyam-lit"
           >
-            {label}
+            In {m} minutes
           </button>
         </li>
       ))}
