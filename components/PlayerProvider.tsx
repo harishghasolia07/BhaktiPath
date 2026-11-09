@@ -117,6 +117,28 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     docked.current = isDocked;
   }, [isDocked]);
 
+  const mini = Boolean(current) && !isDocked;
+  // Docked: shown while the pat is open (fading in as it parts) and hidden behind an error message.
+  const visible = mini || (isDocked && open && !error);
+
+  // The dock sits above the parting curtain, so it fades in a beat late (opacity 0 → 1 over ~1.2s).
+  // The player must not be created during that: an iframe born inside a transparent, animating box is
+  // never painted by an Android WebView — it stays a black rectangle until something resizes it. That
+  // is exactly why opening the mini player (fixed in the viewport, fully opaque) made the picture
+  // appear, and why it stayed after going back: a resize painted it. So wait until the dock is really
+  // on screen and opaque, then create the player.
+  const [fadeDone, setFadeDone] = useState(false);
+  // The mini player is fixed in the viewport and opaque from its first frame — nothing to wait for.
+  const drawn = mini || fadeDone;
+  useEffect(() => {
+    if (!visible || mini || fadeDone) return;
+    // Fetch YouTube's API while the curtain is opening, so that creating the player once the fade is
+    // over is immediate rather than another second of black screen.
+    void loadYouTubeApi().catch(() => {});
+    const t = window.setTimeout(() => setFadeDone(true), 1250); // 500ms delay + 700ms fade
+    return () => window.clearTimeout(t);
+  }, [visible, mini, fadeDone]);
+
   const flash = useCallback((msg: string) => {
     setToast(msg);
     window.setTimeout(() => setToast((t) => (t === msg ? null : t)), 2600);
@@ -218,6 +240,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     setEnded(false);
     setError(null);
     setSleepState(null);
+    setFadeDone(false); // the next darshan creates its player once its box is really on screen
   }, []);
 
   // What happens when a clip reaches its end time.
@@ -243,9 +266,9 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     };
   }, [flash, goTo, load]);
 
-  // Create YouTube's player the first time something is played. It stays until close().
+  // Create YouTube's player once the dock is drawn. It stays until close().
   useEffect(() => {
-    if (!open || player.current || !host.current || !cur.current) return;
+    if (!open || !drawn || player.current || !host.current || !cur.current) return;
     let cancelled = false;
     const box = host.current;
     // YouTube measures its own iframe once, when it is created, and never looks again: a player born
@@ -263,7 +286,22 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       if (!p || !r || typeof p.setSize !== "function") return;
       p.setSize(Math.round(r.width), Math.round(r.height));
     };
+    // Make the player lay its picture out again. A WebView can leave the video surface unpainted from
+    // the moment it was created; nudging the iframe by a pixel and putting it back is the same thing
+    // that happens when the player is minimised and reopened — the recovery you found by hand.
+    const kick = () => {
+      const p = player.current;
+      const r = size();
+      if (!p || !r || typeof p.setSize !== "function") return;
+      const w = Math.round(r.width);
+      const h = Math.round(r.height);
+      p.setSize(w + 1, h);
+      requestAnimationFrame(() => {
+        if (player.current === p) p.setSize?.(w, h);
+      });
+    };
     let started = false;
+    let shownPlaying = false;
     const start = (force = false) => {
       if (started || cancelled || player.current) return;
       const r = size();
@@ -283,7 +321,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
             playerVars: { start: peekResumeAt(c.slug) ?? c.start, end: c.end, autoplay: 1, playsinline: 1, rel: 0, cc_load_policy: 0, origin: window.location.origin },
             events: {
               onReady: (e) => {
-                fit();
+                kick();
                 // a different bhajan was picked while YouTube's player was still loading
                 const n = cur.current;
                 if (n && n.slug !== c.slug) e.target.loadVideoById({ videoId: n.videoId, startSeconds: peekResumeAt(n.slug) ?? n.start, endSeconds: n.end });
@@ -293,6 +331,12 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
                 if (!c2) return;
                 if (e.data === STATE.PLAYING) {
                   setPlaying(true);
+                  // First picture: hand the surface one more layout, in case the create-time nudge
+                  // landed while YouTube had nothing to draw yet.
+                  if (!shownPlaying) {
+                    shownPlaying = true;
+                    kick();
+                  }
                   clearResumeAt(); // the "Continue" jump has happened
                   if (rateRef.current !== 1) e.target.setPlaybackRate?.(rateRef.current);
                   markPlayed(c2.slug);
@@ -325,13 +369,17 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     // Nothing gave the box a size: better a player with the wrong size (it can still be corrected)
     // than a bhajan that never starts.
     const fallback = window.setTimeout(() => start(true), 1500);
+    // A second nudge once the stream is actually loaded (YouTube reports ready before it has a
+    // picture to show), so a surface that failed to attach at creation gets laid out again.
+    const again = window.setTimeout(kick, 2600);
     return () => {
       cancelled = true;
       window.clearTimeout(fallback);
+      window.clearTimeout(again);
       watch.disconnect();
     };
-    // `mount` is the box the player is drawn in; it is known one layout pass after the first render.
-  }, [open, mount]);
+    // `mount` is the box the player is drawn in; `drawn` is the dock really being on screen.
+  }, [open, drawn, mount]);
 
   // Clip-relative progress, and the end-time check.
   useEffect(() => {
@@ -479,13 +527,12 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     flash,
   };
 
-  const mini = Boolean(current) && !isDocked;
-  // Docked: shown while the pat is open (fading in as it parts) and hidden behind an error message.
-  const visible = mini || (isDocked && open && !error);
   const length = current ? current.end - current.start : 1;
   const elapsed = current ? Math.min(Math.max(now - current.start, 0), length) : 0;
   const i = current ? queue.findIndex((x) => x.slug === current.slug) : -1;
   const hasNext = i >= 0 && i + 1 < queue.length;
+  // The player is interactive exactly when it can be seen.
+  const shown = Boolean(current) && (mini || visible);
 
   const dockEl = (
     <div
@@ -494,8 +541,11 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       className={[
         isDocked ? "absolute" : "fixed",
         "z-40",
-        !current ? "pointer-events-none invisible left-0 top-0 size-px opacity-0" : "",
-        isDocked ? `transition-opacity ${visible ? "opacity-100 delay-500 duration-700" : "pointer-events-none invisible opacity-0 duration-200"}` : "",
+        // The stage it is portalled into ignores the pointer (it covers the whole page); the player
+        // takes clicks back while it is on screen.
+        shown ? "pointer-events-auto" : "pointer-events-none",
+        shown ? "" : "invisible left-0 top-0 size-px opacity-0",
+        isDocked ? `transition-opacity ${visible ? "opacity-100 delay-500 duration-700" : "opacity-0 duration-200"}` : "",
         mini
           ? "inset-x-2 bottom-2 overflow-hidden rounded-[6px] border-2 border-brass bg-shyam shadow-[0_18px_40px_-8px_rgb(0_0_0/0.75)] sm:inset-x-auto sm:bottom-4 sm:right-4 sm:w-[22.5rem]"
           : "",

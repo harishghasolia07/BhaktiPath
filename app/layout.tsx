@@ -58,7 +58,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           {/* Laptops: the stage between header and footer is a size container; must-fit things
               (shrine, board) size against it, leaving a 2rem gap above the footer. The header lives
               inside it (see below) so it travels with the page instead of sitting on top of it. */}
-          <div id="content" className="flex-1 max-lg:has-[[data-shell]]:flex max-lg:has-[[data-shell]]:min-h-0 max-lg:has-[[data-shell]]:flex-col max-lg:has-[[data-shell]]:overflow-y-auto max-lg:has-[[data-shell]]:overscroll-contain lg:min-h-0 lg:overflow-y-auto lg:[container-type:size] lg:[--fit-h:calc(100cqh-var(--nav-h)-2rem)]">
+          <div id="content" className="relative flex-1 max-lg:has-[[data-shell]]:flex max-lg:has-[[data-shell]]:min-h-0 max-lg:has-[[data-shell]]:flex-col max-lg:has-[[data-shell]]:overflow-y-auto max-lg:has-[[data-shell]]:overscroll-contain lg:min-h-0 lg:overflow-y-auto lg:[container-type:size] lg:[--fit-h:calc(100cqh-var(--nav-h)-2rem)]">
             {/* The header is part of the page, not a bar above it: scrolling carries it away, so
                 nothing is ever left covering the content that slides up. */}
             <header className="relative z-20 shrink-0">
@@ -83,9 +83,13 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             {/* The player is drawn inside this box: the page's scroll clips it and carries it exactly
                 like the shrine it sits over. (At the end of <body> nothing clipped it, so on wide
                 screens the video slid up over the header while the shrine was cut off below.)
-                `relative` makes it the player's containing block — inside the scroll area, so the
-                scroll clips the player too. */}
-            <div id="player-mount" className="relative" />
+                It covers the whole scroll area and is the player's containing block, so the player is
+                placed in page coordinates like any other part of the page — not at a huge negative
+                offset hanging off a zero-height strip at the very end of the document. (An iframe laid
+                out like that is not painted at all by an Android WebView: a black video until
+                something resizes it. The mini player, which is fixed in the viewport, always painted.)
+                `pointer-events-none`: it is only a stage; the player itself turns clicks back on. */}
+            <div id="player-mount" className="pointer-events-none absolute inset-0" />
           </div>
 
           <SiteFooter build={build} />
