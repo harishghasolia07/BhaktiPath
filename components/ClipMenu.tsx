@@ -69,11 +69,15 @@ export function ClipMenu({
         aria-expanded={open}
         title="More"
         onClick={(e) => (open ? (setAnchor(null), setView("main")) : setAnchor(e.currentTarget))}
-        className={`relative grid place-items-center rounded-full text-sandal transition-colors hover:text-marigold aria-expanded:text-marigold ${className}`}
+        className={`grid place-items-center rounded-full text-sandal transition-colors hover:text-marigold aria-expanded:text-marigold ${className}`}
       >
-        <MoreHorizontal className="size-5" aria-hidden="true" />
-        {/* phones keep the sleep timer in this menu: mark it here while one is set */}
-        {onSleep && sleep && <span aria-hidden="true" className="absolute right-1 top-1 size-1.5 rounded-full bg-marigold sm:hidden" />}
+        {/* the wrapper, not the button, is the dot's anchor: the button's position comes from the caller
+            (rows place it absolutely), and a stray `relative` would put it back in the flow */}
+        <span className="relative inline-grid place-items-center">
+          <MoreHorizontal className="size-5" aria-hidden="true" />
+          {/* phones keep the sleep timer in this menu: mark it here while one is set */}
+          {onSleep && sleep && <span aria-hidden="true" className="absolute right-0 top-0 size-1.5 rounded-full bg-marigold sm:hidden" />}
+        </span>
       </button>
       {anchor && createPortal(
         <MenuBody
