@@ -11,6 +11,12 @@ export async function makeLyrics(clips: Clip[], opts: { force?: boolean; log?: (
   for (const c of clips) {
     if (c.owner) continue;
     const old = have.get(c.slug);
+    if (old?.source === "manual") {
+      // The owner's exact lyrics: never replace them with the captions.
+      if (old.start !== c.start || old.end !== c.end) log(`  ✋ ${c.title}: the exact lyrics cover a different range — run lyrics:set to re-time them`);
+      else log(`  ✓ kept the exact lyrics  ${c.title}`);
+      continue;
+    }
     if (!opts.force && old && old.start === c.start && old.end === c.end) continue;
     try {
       const lines = buildLines(fetchCaptions(c.videoId), c.start, c.end);

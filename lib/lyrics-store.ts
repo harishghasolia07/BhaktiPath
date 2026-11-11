@@ -5,7 +5,9 @@ import path from "node:path";
 import type { LyricLine } from "./lyrics";
 import { getMongoDb } from "./store";
 
-export type SyncedLyrics = { slug: string; videoId: string; start: number; end: number; lines: LyricLine[]; source: "youtube-auto"; updatedAt: string };
+export type LyricsSource = "youtube-auto" | "manual";
+
+export type SyncedLyrics = { slug: string; videoId: string; start: number; end: number; lines: LyricLine[]; source: LyricsSource; updatedAt: string };
 
 const FILE = () => path.join(process.cwd(), ".data", "lyrics.json");
 let indexed = false;
@@ -35,8 +37,12 @@ export async function getLyrics(slug: string): Promise<SyncedLyrics | null> {
   return (await readFile()).find((l) => l.slug === slug) ?? null;
 }
 
-export async function saveLyrics(doc: Omit<SyncedLyrics, "updatedAt" | "source">): Promise<void> {
-  const full: SyncedLyrics = { ...doc, source: "youtube-auto", updatedAt: new Date().toISOString() };
+/**
+ * Save a clip's lyrics. `source` says where they came from: "manual" lyrics are the owner's exact text and the
+ * caption generator leaves them alone.
+ */
+export async function saveLyrics(doc: Omit<SyncedLyrics, "updatedAt" | "source">, source: LyricsSource = "youtube-auto"): Promise<void> {
+  const full: SyncedLyrics = { ...doc, source, updatedAt: new Date().toISOString() };
   const c = await col();
   if (c) {
     await c.replaceOne({ slug: doc.slug }, full, { upsert: true });
@@ -47,9 +53,9 @@ export async function saveLyrics(doc: Omit<SyncedLyrics, "updatedAt" | "source">
   await fs.writeFile(FILE(), JSON.stringify([...all, full], null, 2) + "\n");
 }
 
-/** Which clips already have lyrics, and for which exact range (a re-timed clip needs new ones). */
-export async function lyricsIndex(): Promise<Map<string, { start: number; end: number }>> {
+/** Which clips already have lyrics, for which exact range (a re-timed clip needs new ones) and from where. */
+export async function lyricsIndex(): Promise<Map<string, { start: number; end: number; source?: LyricsSource }>> {
   const c = await col();
-  const list = c ? await c.find({}, { projection: { _id: 0, slug: 1, start: 1, end: 1 } }).toArray() : await readFile();
-  return new Map(list.map((l) => [l.slug, { start: l.start, end: l.end }]));
+  const list = c ? await c.find({}, { projection: { _id: 0, slug: 1, start: 1, end: 1, source: 1 } }).toArray() : await readFile();
+  return new Map(list.map((l) => [l.slug, { start: l.start, end: l.end, source: l.source }]));
 }

@@ -168,7 +168,7 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
   });
 
   const synced = useSyncedLyrics(clip.slug, !clip.owner);
-  const hasSynced = Boolean(synced && synced.length);
+  const hasSynced = Boolean(synced?.lines.length);
   const hasLyrics = hasSynced || Boolean(clip.lyrics);
   const tabNow: Tab = tabSel?.slug === clip.slug ? tabSel.tab : hasLyrics ? "lyrics" : "next";
   const showLyrics = hasLyrics && tabNow === "lyrics";
@@ -384,11 +384,12 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
             {showLyrics && hasSynced ? (
               <div id="side-panel" role="tabpanel" aria-labelledby="tab-lyrics" className="flex h-[24rem] min-h-0 flex-col lg:h-auto lg:flex-1">
                 <SyncedLyrics
-                  lines={synced!}
+                  lines={synced!.lines}
                   now={now}
                   live={mine && open}
                   onSeek={mine ? (t) => p.seekTo(t) : undefined}
-                  lang={langOf(synced!.map((l) => l.text).join(" "))}
+                  lang={langOf(synced!.lines.map((l) => l.text).join(" "))}
+                  source={synced!.source}
                 />
               </div>
             ) : showLyrics ? (

@@ -2,36 +2,43 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { activeLine, type LyricLine } from "@/lib/lyrics";
+import type { LyricsSource } from "@/lib/lyrics-store";
+
+/** 13 → "१३" for the verse marker. */
+const DEV_DIGITS = "०१२३४५६७८९";
+const devNum = (n: number) => String(n).split("").map((d) => DEV_DIGITS[Number(d)] ?? d).join("");
 
 /* ---------- loading: once per clip, shared by every component that asks ---------- */
-const cache = new Map<string, LyricLine[] | "loading">();
-/** One shared empty list: a snapshot must be the same object every time, or React loops. */
+export type SyncedLyricsData = { lines: LyricLine[]; source: LyricsSource };
+const cache = new Map<string, SyncedLyricsData | "loading">();
+/** One shared empty value: a snapshot must be the same object every time, or React loops. */
 const NONE: LyricLine[] = [];
+const EMPTY: SyncedLyricsData = { lines: NONE, source: "youtube-auto" };
 const listeners = new Set<() => void>();
 function load(slug: string) {
   if (cache.has(slug)) return;
   cache.set(slug, "loading");
   fetch(`/api/lyrics/${encodeURIComponent(slug)}`)
-    .then((r) => (r.ok ? (r.json() as Promise<{ lines: LyricLine[] }>) : { lines: [] }))
-    .then((d) => cache.set(slug, d.lines ?? []))
-    .catch(() => cache.set(slug, []))
+    .then((r) => (r.ok ? (r.json() as Promise<SyncedLyricsData>) : EMPTY))
+    .then((d) => cache.set(slug, { lines: d.lines ?? [], source: d.source ?? "youtube-auto" }))
+    .catch(() => cache.set(slug, EMPTY))
     .finally(() => listeners.forEach((l) => l()));
 }
 
-/** The clip's synced lyrics: null while loading, [] when it has none. Own (private) videos have none. */
-export function useSyncedLyrics(slug: string, enabled = true): LyricLine[] | null {
+/** The clip's synced lyrics: null while loading, no lines when it has none. Own (private) videos have none. */
+export function useSyncedLyrics(slug: string, enabled = true): SyncedLyricsData | null {
   const value = useSyncExternalStore(
     (cb) => {
       listeners.add(cb);
       return () => listeners.delete(cb);
     },
-    () => (enabled ? cache.get(slug) : NONE),
+    () => (enabled ? cache.get(slug) : EMPTY),
     () => undefined,
   );
   useEffect(() => {
     if (enabled) load(slug);
   }, [slug, enabled]);
-  if (!enabled) return NONE;
+  if (!enabled) return EMPTY;
   return value === undefined || value === "loading" ? null : value;
 }
 
@@ -45,6 +52,7 @@ export function SyncedLyrics({
   live,
   onSeek,
   lang,
+  source = "youtube-auto",
 }: {
   lines: LyricLine[];
   /** seconds into the video */
@@ -53,6 +61,8 @@ export function SyncedLyrics({
   live: boolean;
   onSeek?: (t: number) => void;
   lang?: string;
+  /** "manual" is the owner's exact text, kept instead of the auto-captions */
+  source?: LyricsSource;
 }) {
   const box = useRef<HTMLDivElement>(null);
   const handScrollAt = useRef(0);
@@ -120,7 +130,15 @@ export function SyncedLyrics({
                           : "text-ivory/75",
                   ].join(" ")}
                 >
-                  {l.text}
+                  {l.verse !== undefined && (
+                    <span className="mb-0.5 block text-[0.72rem] font-semibold tracking-[0.12em] text-gold/75">
+                      ॥ {devNum(l.verse)} ॥
+                    </span>
+                  )}
+                  <span className="block">{l.text}</span>
+                  {l.translit && (
+                    <span className="mt-0.5 block text-[0.72em] italic leading-snug opacity-65">{l.translit}</span>
+                  )}
                 </button>
               </li>
             );
@@ -136,7 +154,11 @@ export function SyncedLyrics({
           Back to the singing
         </button>
       )}
-      <p className="border-t border-gold/20 px-4 py-1.5 text-[0.75rem] text-mist/80">From YouTube&apos;s auto-captions: some words may be wrong. Tap a line to jump there.</p>
+      <p className="border-t border-gold/20 px-4 py-1.5 text-[0.75rem] text-mist/80">
+        {source === "manual"
+          ? "Exact lyrics, synchronized to the recording. Tap a line to jump there."
+          : "From YouTube's auto-captions: some words may be wrong. Tap a line to jump there."}
+      </p>
     </div>
   );
 }
