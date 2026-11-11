@@ -6,8 +6,6 @@ export type LyricLine = {
   /** seconds into the video when the line begins */
   t: number;
   text: string;
-  /** optional Latin transliteration shown under the line (exact lyrics only) */
-  translit?: string;
   /** verse number, shown above the first line of a verse (exact lyrics only) */
   verse?: number;
   /** a long sentence: most likely speaking between verses, not singing */

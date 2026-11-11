@@ -136,9 +136,6 @@ export function SyncedLyrics({
                     </span>
                   )}
                   <span className="block">{l.text}</span>
-                  {l.translit && (
-                    <span className="mt-0.5 block text-[0.72em] italic leading-snug opacity-65">{l.translit}</span>
-                  )}
                 </button>
               </li>
             );

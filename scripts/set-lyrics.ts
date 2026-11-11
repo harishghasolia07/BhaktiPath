@@ -9,14 +9,14 @@
 //     "start": 2778,                  // optional: must match the clip
 //     "end": 3791,                    // optional: must match the clip
 //     "lines": [
-//       { "t": 2802.24, "text": "मुनीन्द्रवृन्दवन्दिते …", "translit": "Munīndra-vṛnda-vandite …", "verse": 1 },
+//       { "t": 2802.24, "text": "मुनीन्द्रवृन्दवन्दिते …", "verse": 1 },
 //       …
 //     ]
 //   }
 //
-// `t` is seconds into the video, in order; `translit` is shown under the line; `verse` is shown above the first
-// line of a verse. Once saved the caption generator leaves these lyrics alone (`npm run lyrics` prints
-// "kept the exact lyrics" and moves on). Saving refreshes the site.
+// `t` is seconds into the video, in order; `verse` is shown above the first line of a verse. Once saved the caption
+// generator leaves these lyrics alone (`npm run lyrics` prints "kept the exact lyrics" and moves on). Saving
+// refreshes the site.
 //
 // Reads MONGODB_URI from .env.local (without it, the local .data/lyrics.json is used).
 import { existsSync, readFileSync } from "node:fs";
@@ -73,7 +73,6 @@ async function main() {
     if (l.t <= last) die(`line ${n}: times must go forward (${last}s → ${l.t}s)`);
     last = l.t;
     if (typeof l.text !== "string" || !l.text.trim()) die(`line ${n}: text is empty`);
-    if (l.translit !== undefined && typeof l.translit !== "string") die(`line ${n}: translit must be a string`);
     if (l.verse !== undefined) {
       if (!Number.isInteger(l.verse) || l.verse < 1) die(`line ${n}: verse must be a whole number from 1`);
       verses.add(l.verse);
@@ -87,9 +86,8 @@ async function main() {
   );
 
   const first = doc.lines[0].t;
-  const withTranslit = doc.lines.filter((l) => l.translit).length;
   console.log(`✓ exact lyrics for "${clip.title}" [${clip.slug}]`);
-  console.log(`  ${doc.lines.length} lines${verses.size ? `, ${verses.size} verses` : ""}${withTranslit ? `, ${withTranslit} with transliteration` : ""}`);
+  console.log(`  ${doc.lines.length} lines${verses.size ? `, ${verses.size} verses` : ""}`);
   console.log(`  ${first}s – ${last}s (clip ${clip.start}–${clip.end})`);
   await refreshSite();
   process.exit(0);

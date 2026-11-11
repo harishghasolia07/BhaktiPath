@@ -145,14 +145,14 @@ clip in `data/lyrics/<slug>.json`:
   "slug": "shri-radha-kripa-kataksh-stotram",
   "videoId": "tjuOcC7B9jk",
   "lines": [
-    { "t": 2802.24, "verse": 1, "text": "मुनीन्द्रवृन्दवन्दिते …", "translit": "Munīndra-vṛnda-vandite …" }
+    { "t": 2802.24, "verse": 1, "text": "मुनीन्द्रवृन्दवन्दिते …" }
   ]
 }
 ```
 
-`t` is seconds into the video, in order (take each pada's start from the cached captions); `translit` is shown under
-the line; `verse` prints a verse number above its first line. Save with
-`npm run lyrics:set -- data/lyrics/<slug>.json`. The file's optional `start` / `end` must match the clip.
+`t` is seconds into the video, in order (take each pada's start from the cached captions); `verse` prints a verse
+number above its first line. Save with `npm run lyrics:set -- data/lyrics/<slug>.json`. The file's optional
+`start` / `end` must match the clip.
 
 Saved lyrics are marked `source: "manual"` and the caption generator never overwrites them: `npm run lyrics` prints
 "kept the exact lyrics" and moves on. To re-time them, edit the file and run `lyrics:set` again.
