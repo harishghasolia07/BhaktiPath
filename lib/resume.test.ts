@@ -8,6 +8,11 @@ describe("resumeOffer", () => {
   it("offers the saved second inside the clip", () => {
     expect(resumeOffer({ slug: "a", t: 250, at: NOW - 1000 }, clip, NOW)).toBe(250);
   });
+  it("on a public clip (no real bounds) only needs a positive saved second", () => {
+    const shown = { ...clip, start: 0, end: 300, rank: 0 };
+    expect(resumeOffer({ slug: "a", t: 250, at: NOW }, shown, NOW)).toBe(250);
+    expect(resumeOffer({ slug: "a", t: 0, at: NOW }, shown, NOW)).toBeNull();
+  });
   it("offers nothing when it is too early, nearly over, for another clip, too old, or missing", () => {
     expect(resumeOffer({ slug: "a", t: 105, at: NOW }, clip, NOW)).toBeNull();
     expect(resumeOffer({ slug: "a", t: 395, at: NOW }, clip, NOW)).toBeNull();

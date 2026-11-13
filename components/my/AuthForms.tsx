@@ -1,20 +1,24 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import Link from "next/link";
 import { signIn, signUp } from "@/app/my/auth-actions";
 
 const field =
   "h-12 w-full rounded-[6px] border border-gold/35 bg-shyam px-3.5 text-ivory placeholder:text-mist/70 focus:border-marigold focus:shadow-[0_0_0_1px_var(--color-marigold)] focus:outline-none focus-visible:outline-none aria-[invalid=true]:border-marigold";
 
-/** Sign in or create an account with an email and password. */
-export function AuthForms() {
+/** Sign in or create an account with an email and password. With `onSignedIn` it stays on the page (the dialog) instead of going to /my. */
+export function AuthForms({ onSignedIn }: { onSignedIn?: () => void }) {
   const [mode, setMode] = useState<"in" | "up">("in");
   const [inState, inAction, inPending] = useActionState(signIn, undefined);
   const [upState, upAction, upPending] = useActionState(signUp, undefined);
   const up = mode === "up";
   const state = up ? upState : inState;
   const err = state?.fields ?? {};
+  const ok = state?.ok === true;
+  useEffect(() => {
+    if (ok) onSignedIn?.();
+  }, [ok, onSignedIn]);
   return (
     <div className="flex w-full max-w-sm flex-col gap-4 text-left">
       <div role="tablist" aria-label="Email and password" className="grid grid-cols-2 gap-1 rounded-full border border-gold/30 p-1">
@@ -32,6 +36,7 @@ export function AuthForms() {
         ))}
       </div>
       <form key={mode} action={up ? upAction : inAction} className="flex flex-col gap-4">
+        {onSignedIn && <input type="hidden" name="stay" value="1" />}
         {up && (
           <label className="flex flex-col gap-1.5">
             <span className="font-semibold text-sandal">Your name</span>

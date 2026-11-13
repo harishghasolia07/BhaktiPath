@@ -40,6 +40,11 @@ export type Clip = {
   videoId: string;
   start: number;
   end: number;
+  /**
+   * Public pages carry no real times: `start` is 0, `end` is the clip's length, and `rank` is its
+   * position in the source video. The player fetches the real times only when an account plays it.
+   */
+  rank?: number;
   /** One to three of Bhajan, Kirtan, Katha. */
   categories: Category[];
   tags: string[];

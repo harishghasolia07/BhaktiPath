@@ -172,6 +172,8 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
   const hasLyrics = hasSynced || Boolean(clip.lyrics);
   const tabNow: Tab = tabSel?.slug === clip.slug ? tabSel.tab : hasLyrics ? "lyrics" : "next";
   const showLyrics = hasLyrics && tabNow === "lyrics";
+  // Public pages know only the full video: a timestamp here would expose the clip's start.
+  const youtubeHref = clip.owner ? youtubeAtUrl(clip.videoId, clip.start) : `https://youtu.be/${clip.videoId}`;
 
   return (
     <div className="mx-auto grid w-full max-w-[1520px] gap-x-8 gap-y-6 px-4 pt-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:pt-2 xl:grid-cols-[minmax(0,1fr)_380px]">
@@ -209,7 +211,7 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
                 <p className="max-w-[40ch] text-ivory">{error}</p>
                 <a
                   className="inline-flex items-center gap-2 rounded-full border border-gold/70 px-4 py-2 text-gold"
-                  href={youtubeAtUrl(clip.videoId, clip.start)}
+                  href={youtubeHref}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -260,7 +262,7 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
               {p.repeat === "one" ? <Repeat1 className="size-[18px]" aria-hidden="true" /> : <Repeat className="size-[18px]" aria-hidden="true" />}
             </IconToggle>
             <a
-              href={youtubeAtUrl(clip.videoId, clip.start)}
+              href={youtubeHref}
               target="_blank"
               rel="noopener noreferrer"
               title="Open on YouTube"
@@ -385,9 +387,9 @@ export function ClipStage({ queue, initialSlug, queueLabel }: Props) {
               <div id="side-panel" role="tabpanel" aria-labelledby="tab-lyrics" className="flex h-[24rem] min-h-0 flex-col lg:h-auto lg:flex-1">
                 <SyncedLyrics
                   lines={synced!.lines}
-                  now={now}
+                  now={now - clip.start}
                   live={mine && open}
-                  onSeek={mine ? (t) => p.seekTo(t) : undefined}
+                  onSeek={mine ? (t) => p.seekTo(clip.start + t) : undefined}
                   lang={langOf(synced!.lines.map((l) => l.text).join(" "))}
                   source={synced!.source}
                 />

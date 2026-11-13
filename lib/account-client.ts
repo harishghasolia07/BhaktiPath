@@ -35,13 +35,38 @@ function load() {
   refreshAccount();
 }
 
+type Me = { user: Account["user"]; favs?: string[]; recent?: string[]; played?: string[]; videos?: Clip[]; playlists?: PlaylistLite[] };
+
+let inflight: Promise<Account> | null = null;
+
+async function ask(): Promise<Account> {
+  try {
+    const r = await fetch("/api/me", { cache: "no-store" });
+    const d = (await r.json()) as Me;
+    return d.user
+      ? { status: "in", user: d.user, favs: d.favs ?? [], recent: d.recent ?? [], played: d.played ?? [], videos: d.videos ?? [], playlists: d.playlists ?? [] }
+      : { ...LOADING, status: "out" };
+  } catch {
+    return { ...LOADING, status: "out" };
+  }
+}
+
 /** Ask the server who is signed in now (after an email sign-in or sign-up, which doesn't reload the page). */
-export function refreshAccount() {
+export function refreshAccount(): Promise<Account> {
   started = true;
-  fetch("/api/me", { cache: "no-store" })
-    .then((r) => r.json() as Promise<{ user: Account["user"]; favs?: string[]; recent?: string[]; played?: string[]; videos?: Clip[]; playlists?: PlaylistLite[] }>)
-    .then((d) => set(d.user ? { status: "in", user: d.user, favs: d.favs ?? [], recent: d.recent ?? [], played: d.played ?? [], videos: d.videos ?? [], playlists: d.playlists ?? [] } : { ...LOADING, status: "out" }))
-    .catch(() => set({ ...LOADING, status: "out" }));
+  const p = ask().then((next) => {
+    if (inflight === p) inflight = null;
+    set(next);
+    return next;
+  });
+  inflight = p;
+  return p;
+}
+
+/** The account, waiting for the first answer when it hasn't arrived yet — never the "loading" placeholder. */
+export function ensureAccount(): Promise<Account> {
+  if (state.status !== "loading") return Promise.resolve(state);
+  return inflight ?? refreshAccount();
 }
 
 export function getAccount(): Account {

@@ -4,9 +4,9 @@
 import { useCallback, useSyncExternalStore } from "react";
 import { nextRepeat, nextSpeed, readRepeat, readSpeed, type Repeat } from "./player-rules";
 import { isNewClip, type Resume } from "./resume";
-import { accountMarkPlayed, accountToggleFav, getAccount, useAccount } from "./account-client";
+import { accountMarkPlayed, accountToggleFav, ensureAccount, getAccount, useAccount } from "./account-client";
+import { askToSignIn } from "./signin-gate";
 
-const PLAYED = "sk:played";
 const EVT = "sk:local";
 
 function read(key: string): string | null {
@@ -31,45 +31,34 @@ function subscribe(cb: () => void) {
   };
 }
 
-// Signed in: likes and history belong to the account. Signed out: they stay on this device.
+// Likes and history belong to the account. Signed out there is nothing to keep on the device: listening
+// and liking both ask for a sign-in first (lib/signin-gate), so the local lists were a hole — not a feature.
 export function usePlayed(): Set<string> {
   const acct = useAccount();
-  const raw = useSyncExternalStore(subscribe, () => read(PLAYED) ?? "", () => "");
-  return new Set(acct.status === "in" ? acct.played : raw ? raw.split(",") : []);
+  return new Set(acct.played);
 }
 
-const RECENT = "sk:recent";
-const FAVS = "sk:favs";
-const list = (raw: string | null) => (raw ? raw.split(",").filter(Boolean) : []);
-
 export function markPlayed(slug: string) {
-  if (getAccount().status === "in") return accountMarkPlayed(slug);
-  const s = new Set(list(read(PLAYED)));
-  if (!s.has(slug)) {
-    s.add(slug);
-    write(PLAYED, [...s].join(","));
-  }
-  // most recent first, no repeats, the last 30
-  write(RECENT, [slug, ...list(read(RECENT)).filter((x) => x !== slug)].slice(0, 30).join(","));
+  if (getAccount().status === "in") accountMarkPlayed(slug);
 }
 
 /** Slugs of recently played bhajans, newest first. */
 export function useRecent(): string[] {
-  const acct = useAccount();
-  const raw = useSyncExternalStore(subscribe, () => read(RECENT) ?? "", () => "");
-  return acct.status === "in" ? acct.recent : list(raw);
+  return useAccount().recent;
 }
 
-/** Favourite bhajans on this device: the set, and a toggle. */
+/** Liked bhajans: the set, and a toggle that asks a signed-out visitor to sign in first. */
 export function useFavs(): [Set<string>, (slug: string) => void] {
   const acct = useAccount();
-  const raw = useSyncExternalStore(subscribe, () => read(FAVS) ?? "", () => "");
   const toggle = useCallback((slug: string) => {
     if (getAccount().status === "in") return accountToggleFav(slug);
-    const cur = list(read(FAVS));
-    write(FAVS, (cur.includes(slug) ? cur.filter((x) => x !== slug) : [slug, ...cur]).join(","));
+    // Signed out: ask, and like it once they are in (unless the account already has it).
+    const like = () => {
+      if (!getAccount().favs.includes(slug)) accountToggleFav(slug);
+    };
+    void ensureAccount().then((who) => (who.status === "in" ? like() : askToSignIn("like this bhajan", like)));
   }, []);
-  return [new Set(acct.status === "in" ? acct.favs : list(raw)), toggle];
+  return [new Set(acct.favs), toggle];
 }
 
 /* ---- continue where I left off (this device) ---- */

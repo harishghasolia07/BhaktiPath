@@ -11,6 +11,8 @@ import Link from "next/link";
 import { Pause, Play, SkipForward, X } from "lucide-react";
 import type { Clip } from "@/lib/clip-schema";
 import { clipHref, langOf } from "@/lib/display";
+import { ensureAccount, getAccount } from "@/lib/account-client";
+import { askToSignIn } from "@/lib/signin-gate";
 import { clearResume, clearResumeAt, markPlayed, peekResumeAt, saveResume, usePref, useRepeat, useSpeed } from "@/lib/local";
 import { afterEnd, appendToQueue, insertNext, type Repeat } from "@/lib/player-rules";
 import { Scrubber } from "./Scrubber";
@@ -102,6 +104,8 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const sleepRef = useRef<Sleep>(null);
   const onEnd = useRef<() => void>(() => {});
   const lastSave = useRef(0);
+  /** Which timing request is the current one; an older answer is dropped. */
+  const seq = useRef(0);
 
   useEffect(() => {
     prefs.current = { repeat, autoNext };
@@ -151,10 +155,18 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     window.setTimeout(() => setToast((t) => (t === msg ? null : t)), 2600);
   }, []);
 
+  // Listening needs an account, so every start asks first. A signed-out tap opens the sign-in prompt
+  // and the same tap is finished after signing in — the shrine's buttons stay visible throughout.
+  const allow = useCallback((what: string, run: () => void) => {
+    if (getAccount().status === "in") return run();
+    void ensureAccount().then((acct) => (acct.status === "in" ? run() : askToSignIn(what, run)));
+  }, []);
+
   const load = useCallback((c: Clip, play = true) => {
     endedFor.current = null;
     captionsOff.current = false;
-    const from = peekResumeAt(c.slug) ?? c.start; // a "Continue" tap starts partway in
+    const saved = peekResumeAt(c.slug); // a "Continue" tap starts partway in
+    const from = saved !== null && saved >= c.start + 10 && saved <= c.end - 10 ? saved : c.start;
     setNow(from);
     setError(null);
     setEnded(false);
@@ -165,34 +177,80 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     else p.cueVideoById(o);
   }, []);
 
+  // Public clips carry no real times. Ask for just this clip's start/end when it is about to play:
+  // that keeps the whole curation out of every page, and makes a bulk copy many slow, logged calls.
+  const fetchTiming = useCallback(
+    async (c: Clip): Promise<Clip | null> => {
+      if (c.owner || c.rank === undefined) return c; // a private video, or already timed
+      try {
+        const res = await fetch(`/api/play/${encodeURIComponent(c.slug)}`, { method: "POST", cache: "no-store" });
+        if (res.status === 429) {
+          flash("Too many bhajans started at once. Please wait a moment.");
+          return null;
+        }
+        if (!res.ok) {
+          flash(res.status === 401 ? "Please sign in to listen." : "Couldn't start this bhajan. Please try again.");
+          return null;
+        }
+        const d = (await res.json()) as { start?: unknown; end?: unknown };
+        if (typeof d.start !== "number" || typeof d.end !== "number" || d.end <= d.start) {
+          flash("Couldn't start this bhajan. Please try again.");
+          return null;
+        }
+        return { ...c, start: d.start, end: d.end };
+      } catch {
+        flash("Couldn't reach the site. Please try again.");
+        return null;
+      }
+    },
+    [flash],
+  );
+
   const show = useCallback((c: Clip) => {
     cur.current = c;
     setCurrent(c);
   }, []);
 
+  /** Fetch this clip's times, then make it the current one. Returns false if another start took over. */
+  const start = useCallback(
+    (c: Clip, list?: Clip[], who?: string): Promise<boolean> => {
+      const n = ++seq.current;
+      return fetchTiming(c).then((timed) => {
+        if (!timed || n !== seq.current) return false;
+        if (list) {
+          q.current = list;
+          setQueue(list);
+        }
+        if (who !== undefined) setOwner(who);
+        show(timed);
+        setOpen(true);
+        load(timed, true);
+        return true;
+      });
+    },
+    [fetchTiming, load, show],
+  );
+
   const play = useCallback(
     (list: Clip[], slug: string, who: string) => {
       const c = list.find((x) => x.slug === slug) ?? list[0];
       if (!c) return;
-      q.current = list;
-      setQueue(list);
-      setOwner(who);
-      show(c);
-      setOpen(true);
-      load(c, true);
+      allow("listen to this bhajan", () => {
+        void start(c, list, who);
+      });
     },
-    [load, show],
+    [allow, start],
   );
 
   const goTo = useCallback(
     (slug: string) => {
       const c = q.current.find((x) => x.slug === slug);
       if (!c) return;
-      show(c);
-      setOpen(true);
-      load(c, true);
+      allow("listen to this bhajan", () => {
+        void start(c);
+      });
     },
-    [load, show],
+    [allow, start],
   );
 
   // Next and previous walk the queue, and go round it — the same circle the "what follows" list on
@@ -214,13 +272,11 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       const cs = cur.current?.slug;
       if (!cs) {
         // nothing playing: it simply starts, in the mini player
-        q.current = [clip];
-        setQueue([clip]);
-        setOwner("__queue");
-        show(clip);
-        setOpen(true);
-        load(clip, true);
-        flash("Playing now");
+        allow("listen to this bhajan", () => {
+          void start(clip, [clip], "__queue").then((ok) => {
+            if (ok) flash("Playing now");
+          });
+        });
         return;
       }
       const list = how === "next" ? insertNext(q.current, cs, clip) : appendToQueue(q.current, cs, clip);
@@ -228,12 +284,13 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       setQueue(list);
       flash(how === "next" ? "Will play next" : "Added to the queue");
     },
-    [flash, load, show],
+    [allow, flash, start],
   );
   const playNext = useCallback((clip: Clip) => edit(clip, "next"), [edit]);
   const addToQueue = useCallback((clip: Clip) => edit(clip, "end"), [edit]);
 
   const close = useCallback(() => {
+    seq.current++; // a timing request still in flight must not reopen the player
     player.current?.destroy();
     player.current = null;
     host.current?.replaceChildren();
@@ -493,14 +550,17 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       if (!c) return;
       const p = player.current;
       if (!open) {
-        setOpen(true);
-        return load(c, true);
+        allow("listen to this bhajan", () => {
+          setOpen(true);
+          load(c, true);
+        });
+        return;
       }
       if (!ready(p)) return;
       const st = p.getPlayerState();
-      if (st === STATE.PLAYING || st === STATE.BUFFERING) p.pauseVideo();
-      else if (p.getCurrentTime() >= c.end - 0.75) load(c, true);
-      else p.playVideo();
+      if (st === STATE.PLAYING || st === STATE.BUFFERING) p.pauseVideo(); // pausing never needs an account
+      else if (p.getCurrentTime() >= c.end - 0.75) allow("listen to this bhajan", () => load(c, true));
+      else allow("listen to this bhajan", () => p.playVideo());
     },
     seekTo: (t) => {
       const p = player.current;
@@ -522,9 +582,12 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     previous,
     goTo,
     restart: () => {
-      if (!cur.current) return;
-      setOpen(true);
-      load(cur.current, true);
+      const c = cur.current;
+      if (!c) return;
+      allow("listen to this bhajan", () => {
+        setOpen(true);
+        load(c, true);
+      });
     },
     close,
     setSleep: (s) => setSleepState(s),

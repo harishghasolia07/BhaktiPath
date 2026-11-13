@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { ClipStage } from "@/components/ClipStage";
-import { getClip, getClips } from "@/lib/clips";
+import { getClip, getClips, getPublicClips } from "@/lib/clips";
+import { publicClip } from "@/lib/public-clip";
 import { getStore } from "@/lib/store";
 import { CATEGORY_LABELS, sectionsText } from "@/lib/clip-schema";
 import { kathaQueue } from "@/lib/katha";
@@ -36,10 +37,12 @@ export async function generateMetadata({ params }: PageProps<"/clip/[slug]">): P
 
 async function Stage({ params, search }: { params: PageProps<"/clip/[slug]">["params"]; search: PageProps<"/clip/[slug]">["searchParams"] }) {
   const { slug } = await params;
-  const [clip, clips, sp] = await Promise.all([findClip(slug), getClips(), search]);
+  const [found, clips, sp] = await Promise.all([findClip(slug), getPublicClips(), search]);
   // An unknown address shows the "not here" page. (Its status can't be 404: clips added after a
   // deploy must open on demand, so Next serves every address before it knows whether it exists.)
-  if (!clip) notFound();
+  if (!found) notFound();
+  // A clip added a moment ago may not be in the cached list yet: hide its times the same way.
+  const clip = clips.find((c) => c.slug === found.slug) ?? publicClip(found);
   // "Play all" from the library: the clips of that view, in the order it showed them.
   if (sp.play) {
     const raw = Array.isArray(sp.slugs) ? sp.slugs[0] : sp.slugs;

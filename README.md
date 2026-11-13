@@ -88,10 +88,12 @@ node scripts/e2e-player.mjs   # real YouTube: starts at start, stops at end, loo
 
 ## Sign-in with Google and "My videos"
 
-Visitors can sign in with Google (header → the person icon, or `/my`). Signed in, their likes and recently
-played live in their account instead of the browser, and they can add any YouTube video to a private library
-(`/my`), then rename, trim, categorise or add lyrics to it. Only the owner can open, edit or delete them.
-Signed-out visitors still work as before, with likes kept in the browser.
+Visitors can sign in with Google (header → the person icon, or `/my`). **Listening and liking need an
+account**: a signed-out tap on play or a heart opens a sign-in prompt. Email sign-in finishes that tap;
+Google sign-in brings you back to the page. Browsing bhajans, kathas, lyrics, search and filters stays
+open. Signed in, likes and recently played live in their account, and they can add any YouTube video to
+a private library (`/my`), then rename, trim, categorise or add lyrics to it. Only the owner can open,
+edit or delete them.
 
 Setup (once):
 1. Google Cloud Console → APIs & Services → Credentials → Create OAuth client ID → *Web application*.

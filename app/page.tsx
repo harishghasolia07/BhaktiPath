@@ -6,7 +6,7 @@ import { ContinueCard } from "@/components/ContinueCard";
 import { Shrine, shrineMaxWidth } from "@/components/Shrine";
 import { ShrineLink } from "@/components/ShrineLink";
 import { TodayStrip } from "@/components/TodayStrip";
-import { getClips } from "@/lib/clips";
+import { getPublicClips } from "@/lib/clips";
 import type { Clip } from "@/lib/clip-schema";
 import { langOf } from "@/lib/display";
 import { formatLength } from "@/lib/youtube";
@@ -54,7 +54,7 @@ async function Today({ clips }: { clips: Clip[] }) {
 }
 
 export default async function Home() {
-  const clips = await getClips();
+  const clips = await getPublicClips();
 
   return (
     <main data-shell className="mx-auto grid w-full max-w-[1520px] grid-cols-[minmax(0,1fr)] items-start gap-x-8 gap-y-8 px-4 pt-4 sm:px-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:pt-3 max-lg:flex max-lg:min-h-0 max-lg:flex-1 max-lg:flex-col max-lg:gap-3 max-lg:pb-3 max-lg:pt-3">

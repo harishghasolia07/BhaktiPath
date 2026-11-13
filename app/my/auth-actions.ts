@@ -24,7 +24,7 @@ async function sendVerification(id: string, email: string, name: string): Promis
   return sent;
 }
 
-export type AuthState = { error?: string; fields?: Record<string, string>; email?: string; name?: string } | undefined;
+export type AuthState = { error?: string; fields?: Record<string, string>; email?: string; name?: string; ok?: boolean } | undefined;
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
@@ -52,6 +52,7 @@ export async function signUp(_: AuthState, form: FormData): Promise<AuthState> {
       };
     throw err;
   }
+  if (form.get("stay")) return { ok: true }; // the sign-in dialog stays on this page and refreshes itself
   redirect("/my");
 }
 
@@ -73,6 +74,7 @@ export async function signIn(_: AuthState, form: FormData): Promise<AuthState> {
   }
   await getAccounts().clearFailures(acct.id);
   await startUserSession(acct.id);
+  if (form.get("stay")) return { ok: true }; // the sign-in dialog stays on this page and refreshes itself
   redirect("/my");
 }
 

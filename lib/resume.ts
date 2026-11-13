@@ -4,9 +4,16 @@ export type Resume = { slug: string; t: number; at: number };
 const DAY = 86_400_000;
 
 /** Seconds to resume from, or null when there is nothing worth resuming (too early, nearly over, too old, gone). */
-export function resumeOffer(r: Resume | null, clip: { slug: string; start: number; end: number } | undefined, now = Date.now()): number | null {
+export function resumeOffer(
+  r: Resume | null,
+  clip: { slug: string; start: number; end: number; rank?: number } | undefined,
+  now = Date.now(),
+): number | null {
   if (!r || !clip || r.slug !== clip.slug) return null;
   if (now - r.at > 30 * DAY) return null;
+  // A public clip carries no real bounds (start 0, end = length), so only the player can check the
+  // saved second against the clip once it has fetched the times. Here, any positive second is enough.
+  if (clip.rank !== undefined) return r.t > 0 ? r.t : null;
   if (r.t < clip.start + 10 || r.t > clip.end - 10) return null;
   return r.t;
 }

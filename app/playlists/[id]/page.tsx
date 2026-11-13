@@ -6,8 +6,9 @@ import { ChevronLeft, Play } from "lucide-react";
 import { ClipCard } from "@/components/ClipCard";
 import { PlaylistManager, type Row } from "@/components/playlists/PlaylistManager";
 import { getAccounts } from "@/lib/accounts";
-import { getClips } from "@/lib/clips";
+import { getPublicClips } from "@/lib/clips";
 import { getStore } from "@/lib/store";
+import { publicClip } from "@/lib/public-clip";
 import { visibleKeys } from "@/lib/playlists";
 import { currentUser } from "@/lib/user-session";
 
@@ -34,10 +35,18 @@ async function Body({ params }: { params: PageProps<"/playlists/[id]">["params"]
   const keys = visibleKeys(list.items, isOwner);
   const own = isOwner ? new Map((await getAccounts().listVideos(list.ownerId)).map((v) => [v.slug, v])) : new Map();
   const store = getStore();
-  const rows: Row[] = await Promise.all(keys.map(async (key) => ({ key, clip: own.get(key) ?? (key.startsWith("my-") ? null : await store.getBySlug(key)) })));
+  const rows: Row[] = await Promise.all(
+    keys.map(async (key) => {
+      const mine = own.get(key);
+      if (mine) return { key, clip: mine };
+      if (key.startsWith("my-")) return { key, clip: null };
+      const c = await store.getBySlug(key);
+      return { key, clip: c ? publicClip(c) : null };
+    }),
+  );
 
   if (isOwner) {
-    const available = [...(await getClips()), ...own.values()];
+    const available = [...(await getPublicClips()), ...own.values()];
     return (
       <div className="mx-auto flex w-full max-w-[860px] flex-col gap-5">
         <Link href={`/kathas?k=pl:${list.id}`} className="inline-flex w-fit items-center gap-1 text-sandal no-underline hover:text-ivory">

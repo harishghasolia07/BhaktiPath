@@ -29,6 +29,9 @@ export function libraryHref(src: KathaSource, videoId: string): string {
 
 export type ClipGroup = { videoId: string; label: string; href: string; clips: Clip[] };
 
+/** A clip's place in its source video: the public rank, or the real start on the server/admin side. */
+const videoOrder = (c: Clip) => c.rank ?? c.start;
+
 /** Clips grouped by katha day (newest day first), each day in time order. */
 export function groupByVideo(clips: Clip[]): ClipGroup[] {
   const groups = new Map<string, ClipGroup & { newest: string }>();
@@ -49,7 +52,7 @@ export function groupByVideo(clips: Clip[]): ClipGroup[] {
   }
   return [...groups.values()]
     .sort((a, b) => b.newest.localeCompare(a.newest))
-    .map(({ videoId, label, href, clips }) => ({ videoId, label, href, clips: clips.sort((a, b) => a.start - b.start) }));
+    .map(({ videoId, label, href, clips }) => ({ videoId, label, href, clips: clips.sort((a, b) => videoOrder(a) - videoOrder(b)) }));
 }
 
 const IST = 5.5 * 3600_000;

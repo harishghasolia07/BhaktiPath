@@ -3,41 +3,47 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { activeLine, type LyricLine } from "@/lib/lyrics";
 import type { LyricsSource } from "@/lib/lyrics-store";
+import { useAccount } from "@/lib/account-client";
 
 /** 13 → "१३" for the verse marker. */
 const DEV_DIGITS = "०१२३४५६७८९";
 const devNum = (n: number) => String(n).split("").map((d) => DEV_DIGITS[Number(d)] ?? d).join("");
 
-/* ---------- loading: once per clip, shared by every component that asks ---------- */
+/* ---------- loading: once per clip and sign-in state, shared by every component that asks ---------- */
 export type SyncedLyricsData = { lines: LyricLine[]; source: LyricsSource };
 const cache = new Map<string, SyncedLyricsData | "loading">();
 /** One shared empty value: a snapshot must be the same object every time, or React loops. */
 const NONE: LyricLine[] = [];
 const EMPTY: SyncedLyricsData = { lines: NONE, source: "youtube-auto" };
 const listeners = new Set<() => void>();
-function load(slug: string) {
-  if (cache.has(slug)) return;
-  cache.set(slug, "loading");
+function load(key: string, slug: string) {
+  if (cache.has(key)) return;
+  cache.set(key, "loading");
   fetch(`/api/lyrics/${encodeURIComponent(slug)}`)
     .then((r) => (r.ok ? (r.json() as Promise<SyncedLyricsData>) : EMPTY))
-    .then((d) => cache.set(slug, { lines: d.lines ?? [], source: d.source ?? "youtube-auto" }))
-    .catch(() => cache.set(slug, EMPTY))
+    .then((d) => cache.set(key, { lines: d.lines ?? [], source: d.source ?? "youtube-auto" }))
+    .catch(() => cache.set(key, EMPTY))
     .finally(() => listeners.forEach((l) => l()));
 }
 
 /** The clip's synced lyrics: null while loading, no lines when it has none. Own (private) videos have none. */
 export function useSyncedLyrics(slug: string, enabled = true): SyncedLyricsData | null {
+  const acct = useAccount();
+  const ready = acct.status !== "loading";
+  // Signed out the API returns the words with no times; signed in it returns times relative to the clip.
+  // Keying by both means signing in during the same visit fetches the timed version.
+  const key = `${slug}:${acct.status === "in" ? "in" : "out"}`;
   const value = useSyncExternalStore(
     (cb) => {
       listeners.add(cb);
       return () => listeners.delete(cb);
     },
-    () => (enabled ? cache.get(slug) : EMPTY),
+    () => (enabled ? (ready ? cache.get(key) : undefined) : EMPTY),
     () => undefined,
   );
   useEffect(() => {
-    if (enabled) load(slug);
-  }, [slug, enabled]);
+    if (enabled && ready) load(key, slug);
+  }, [key, slug, enabled, ready]);
   if (!enabled) return EMPTY;
   return value === undefined || value === "loading" ? null : value;
 }
@@ -153,8 +159,9 @@ export function SyncedLyrics({
       )}
       <p className="border-t border-gold/20 px-4 py-1.5 text-[0.75rem] text-mist/80">
         {source === "manual"
-          ? "Exact lyrics, synchronized to the recording. Tap a line to jump there."
-          : "From YouTube's auto-captions: some words may be wrong. Tap a line to jump there."}
+          ? "Exact lyrics, synchronized to the recording."
+          : "From YouTube's auto-captions: some words may be wrong."}
+        {onSeek ? " Tap a line to jump there." : ""}
       </p>
     </div>
   );

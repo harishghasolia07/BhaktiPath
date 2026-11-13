@@ -128,7 +128,7 @@ export function groupByKatha(clips: Clip[]): Katha[] {
       ...k,
       days: k.days.sort((a, b) => a - b),
       clips: k.clips.sort(
-        (a, b) => (kathaOf(a).day ?? 0) - (kathaOf(b).day ?? 0) || a.start - b.start,
+        (a, b) => (kathaOf(a).day ?? 0) - (kathaOf(b).day ?? 0) || (a.rank ?? a.start) - (b.rank ?? b.start),
       ),
     }))
     .sort((a, b) => (b.year ?? 0) - (a.year ?? 0) || b.newest.localeCompare(a.newest));

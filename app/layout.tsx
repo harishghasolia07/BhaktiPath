@@ -3,8 +3,10 @@ import Link from "next/link";
 import { Mukta, Tiro_Devanagari_Hindi, Yatra_One } from "next/font/google";
 import { HeaderNav } from "@/components/HeaderNav";
 import { PlayerProvider } from "@/components/PlayerProvider";
+import { SignInDialog } from "@/components/SignInDialog";
 import { SiteFooter } from "@/components/SiteFooter";
 import { Feather, Toran } from "@/components/ornaments";
+import { googleConfigured } from "@/lib/google";
 import "./site.css";
 import "./cursor.css";
 
@@ -93,6 +95,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           </div>
 
           <SiteFooter build={build} />
+          {/* Listening and liking ask who you are; browsing never does. */}
+          <SignInDialog google={googleConfigured()} />
         </PlayerProvider>
       </body>
     </html>
