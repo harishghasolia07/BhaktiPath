@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
-import { usePathname } from "next/navigation";
 import { X } from "lucide-react";
 import { refreshAccount } from "@/lib/account-client";
 import { closeSignIn, signedIn, useSignInGate } from "@/lib/signin-gate";
@@ -15,7 +14,6 @@ const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), selec
  */
 export function SignInDialog({ google }: { google: boolean }) {
   const gate = useSignInGate();
-  const path = usePathname();
   const panel = useRef<HTMLDivElement>(null);
   const closeButton = useRef<HTMLButtonElement>(null);
 
@@ -50,6 +48,10 @@ export function SignInDialog({ google }: { google: boolean }) {
   }, []);
 
   if (!gate.open) return null;
+
+  // Reached only in the browser, after a tap opened the dialog: reading the address here keeps the
+  // root layout free of a request-time hook that would block prerendering.
+  const path = `${window.location.pathname}${window.location.search}`;
 
   return (
     <div className="fixed inset-0 z-[60] overflow-y-auto bg-black/75 backdrop-blur-[3px]">
